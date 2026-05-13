@@ -79,20 +79,22 @@ const ANIM = { duration: 600 };
 /* ─────────────────────────────────────────────────────────── */
 /* 1. Severity Pie Chart                                        */
 /* ─────────────────────────────────────────────────────────── */
-export function SeverityChart() {
+export function SeverityChart({ labels: propLabels, data: propData }) {
   const { patients } = useApp();
   const ref = useRef(null);
 
   const active = patients.filter(p => p.status !== "Discharged");
   const c = { Critical: 0, Major: 0, Moderate: 0, Minor: 0 };
   active.forEach(p => { if (p.severity in c) c[p.severity]++; });
-  const data = [c.Critical, c.Major, c.Moderate, c.Minor];
+  
+  const labels = propLabels || ["Critical", "Major", "Moderate", "Minor"];
+  const data = propData || [c.Critical, c.Major, c.Moderate, c.Minor];
   const depKey = data.join(",");
 
   useChart(ref, {
     type: "pie",
     data: {
-      labels: ["Critical", "Major", "Moderate", "Minor"],
+      labels,
       datasets: [{
         data,
         backgroundColor: ["#f43f5e", "#f59e0b", "#0ea5e9", "#10b981"],
@@ -116,19 +118,22 @@ export function SeverityChart() {
 /* ─────────────────────────────────────────────────────────── */
 /* 2. Department Bar Chart                                      */
 /* ─────────────────────────────────────────────────────────── */
-export function DepartmentChart() {
+export function DepartmentChart({ labels: propLabels, data: propData }) {
   const { patients } = useApp();
   const ref = useRef(null);
 
   const depts = ["Cardiology", "Trauma", "Neurology", "Pediatrics", "General Surgery"];
   const active = patients.filter(p => p.status !== "Discharged");
-  const data = depts.map(d => active.filter(p => p.department === d).length);
+  const fallbackData = depts.map(d => active.filter(p => p.department === d).length);
+  
+  const labels = propLabels || depts;
+  const data = propData || fallbackData;
   const depKey = data.join(",");
 
   useChart(ref, {
     type: "bar",
     data: {
-      labels: depts,
+      labels,
       datasets: [{
         label: "Active Patients",
         data,
@@ -155,13 +160,13 @@ export function DepartmentChart() {
 /* ─────────────────────────────────────────────────────────── */
 /* 3. Daily Admissions Line Chart                               */
 /* ─────────────────────────────────────────────────────────── */
-export function AdmissionsChart() {
+export function AdmissionsChart({ labels: propLabels, data: propData }) {
   const { admissions } = useApp();
   const ref = useRef(null);
 
-  const labels = Object.keys(admissions);
-  const values = Object.values(admissions);
-  const depKey = values.join(",");
+  const labels = propLabels || Object.keys(admissions);
+  const data = propData || Object.values(admissions);
+  const depKey = data.join(",");
 
   useChart(ref, {
     type: "line",
@@ -169,7 +174,7 @@ export function AdmissionsChart() {
       labels,
       datasets: [{
         label: "Admissions",
-        data: values,
+        data,
         borderColor: "#0ea5e9",
         backgroundColor: "rgba(14,165,233,0.12)",
         fill: true,

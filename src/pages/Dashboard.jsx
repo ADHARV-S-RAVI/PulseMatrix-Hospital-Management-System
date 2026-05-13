@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
-import { getTotalPatients, getCriticalPatients, getBedOccupancy, getDoctorAvailability, getPatients } from "../services/api";
+import { 
+  getDashboardSummary, 
+  getSeverityDistribution, 
+  getDepartmentDistribution, 
+  getAdmissionTrends, 
+  getPatients 
+} from "../services/api";
 import { SeverityChart, DepartmentChart, AdmissionsChart, BedOccupancyChart } from "../components/Charts";
 
 const SEVERITY_CLS = {
   Critical: "severity-critical",
-  Major:    "severity-major",
-  Moderate: "severity-moderate",
-  Minor:    "severity-minor",
+  High:     "severity-major",
+  Medium:   "severity-moderate",
+  Low:      "severity-minor",
 };
 
 const STATUS_CLS = {
@@ -28,33 +34,44 @@ export default function Dashboard({ onNavigate }) {
     totalBeds: 0,
     availableDoctors: 0,
   });
+  const [chartData, setChartData] = useState({
+    severity: { labels: [], values: [] },
+    department: { labels: [], values: [] },
+    trends: { labels: [], values: [] }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [totalPat, critPat, bedOcc, docAvail, pats] = await Promise.all([
-          getTotalPatients(),
-          getCriticalPatients(),
-          getBedOccupancy(),
-          getDoctorAvailability(),
+        const [summary, sevDist, deptDist, trends, pats] = await Promise.all([
+          getDashboardSummary(),
+          getSeverityDistribution(),
+          getDepartmentDistribution(),
+          getAdmissionTrends(),
           getPatients()
         ]);
 
         setMetricsData({
-          totalPatients: totalPat.count || 0,
-          criticalCases: critPat.count || 0,
-          bedRate: bedOcc.occupancy_rate ? Math.round(bedOcc.occupancy_rate) : 0,
-          occupiedBeds: bedOcc.occupied_beds || 0,
-          totalBeds: bedOcc.total_beds || 0,
-          availableDoctors: docAvail.available_doctors || 0,
+          totalPatients: summary.total_patients || 0,
+          criticalCases: summary.critical_patients || 0,
+          bedRate: summary.total_beds ? Math.round((summary.total_beds - summary.available_beds) / summary.total_beds * 100) : 0,
+          occupiedBeds: summary.total_beds - summary.available_beds || 0,
+          totalBeds: summary.total_beds || 0,
+          availableDoctors: summary.available_doctors || 0,
+        });
+
+        setChartData({
+          severity: sevDist,
+          department: deptDist,
+          trends: trends
         });
 
         const mappedPats = pats.map(p => {
-          let sev = "Minor";
-          if (p.severity_score >= 90) sev = "Critical";
-          else if (p.severity_score >= 70) sev = "Major";
-          else if (p.severity_score >= 50) sev = "Moderate";
+          let sev = "Low";
+          if (p.severity_score >= 85) sev = "Critical";
+          else if (p.severity_score >= 60) sev = "High";
+          else if (p.severity_score >= 35) sev = "Medium";
           
           return {
              id: `PT-${p.patient_id}`,
@@ -74,6 +91,7 @@ export default function Dashboard({ onNavigate }) {
     }
     fetchData();
   }, []);
+
 
   const metrics = [
     { title: "Total Active Patients",  value: metricsData.totalPatients, icon: "bi-people",       cls: "metric-primary",  footer: "Admitted across departments" },
@@ -125,7 +143,9 @@ export default function Dashboard({ onNavigate }) {
               <span className="badge bg-light text-dark border">Pie Chart</span>
             </div>
             <p className="text-muted small mb-3">Distribution of triage priority scores.</p>
-            <div style={{ height: 280 }}><SeverityChart /></div>
+            <div style={{ height: 280 }}>
+              <SeverityChart labels={chartData.severity.labels} data={chartData.severity.values} />
+            </div>
           </div>
         </div>
         <div className="col-lg-7 col-xl-8">
@@ -135,7 +155,9 @@ export default function Dashboard({ onNavigate }) {
               <span className="badge bg-light text-dark border">Bar Graph</span>
             </div>
             <p className="text-muted small mb-3">Active headcount per clinical division.</p>
-            <div style={{ height: 280 }}><DepartmentChart /></div>
+            <div style={{ height: 280 }}>
+              <DepartmentChart labels={chartData.department.labels} data={chartData.department.values} />
+            </div>
           </div>
         </div>
       </div>
@@ -149,7 +171,9 @@ export default function Dashboard({ onNavigate }) {
               <span className="badge bg-light text-dark border">Line Chart</span>
             </div>
             <p className="text-muted small mb-3">7-day emergency floor inflow volume.</p>
-            <div style={{ height: 310 }}><AdmissionsChart /></div>
+            <div style={{ height: 310 }}>
+              <AdmissionsChart labels={chartData.trends.labels} data={chartData.trends.values} />
+            </div>
           </div>
         </div>
         <div className="col-lg-5 col-xl-4">

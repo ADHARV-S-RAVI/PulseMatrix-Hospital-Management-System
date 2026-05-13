@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { getPatients, updatePatient, deletePatient } from "../services/api";
+import { getPriorityQueue, updatePatient, deletePatient } from "../services/api";
 
-const SEV_CLS  = { Critical:"severity-critical", Major:"severity-major", Moderate:"severity-moderate", Minor:"severity-minor" };
+const SEV_CLS  = { Critical:"severity-critical", High:"severity-major", Medium:"severity-moderate", Low:"severity-minor" };
 const STAT_CLS = { "Newly Admitted":"bg-primary","In Treatment":"bg-success","Awaiting Scans":"bg-warning text-dark",Stable:"bg-info text-dark",Recovering:"bg-secondary","Discharge Ready":"bg-dark" };
 
 const DEPTS = ["All","Trauma","Cardiology","Neurology","Pediatrics","General Surgery"];
-const SEVS  = ["All","Critical","Major","Moderate","Minor"];
+const SEVS  = ["All","Critical","High","Medium","Low"];
 
 export default function EmergencyQueue({ addToast }) {
   const [patients, setPatients] = useState([]);
@@ -17,35 +17,36 @@ export default function EmergencyQueue({ addToast }) {
 
   const fetchPatientData = async () => {
     try {
-      const data = await getPatients();
+      const data = await getPriorityQueue();
       const mapped = data.map(p => {
-        let sev = "Minor";
-        if (p.severity_score >= 90) sev = "Critical";
-        else if (p.severity_score >= 70) sev = "Major";
-        else if (p.severity_score >= 50) sev = "Moderate";
+        let severityLabel = "Low";
+        if (p.score >= 85) severityLabel = "Critical";
+        else if (p.score >= 60) severityLabel = "High";
+        else if (p.score >= 35) severityLabel = "Medium";
         
         return {
-           id: `PT-${p.patient_id}`,
-           numericId: p.patient_id,
+           id: `PT-${p.id}`,
+           numericId: p.id,
            name: p.name,
-           age: p.age,
-           gender: p.gender,
-           department: p.department,
-           severity: sev,
-           severity_score: p.severity_score,
-           status: "In Treatment", // mocked since not in DB
+           age: p.age || 0,
+           gender: p.gender || "N/A",
+           department: p.department || "ER",
+           severity: severityLabel,
+           severity_score: p.score,
+           status: p.status || "Waiting", 
            assignedDoctor: null,
            assignedBed: null,
-           admittedTime: new Date(p.admission_date).toLocaleString()
+           admittedTime: p.arrival_time || "N/A"
         };
       });
       setPatients(mapped);
     } catch (err) {
-      addToast("Error", "Failed to fetch patients", "danger");
+      addToast("Error", "Failed to fetch priority queue", "danger");
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchPatientData();

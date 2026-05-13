@@ -7,6 +7,7 @@ from routes.patient_routes import patient_bp
 from routes.doctor_routes import doctor_bp
 from routes.bed_routes import bed_bp
 from routes.analytics_routes import analytics_bp
+from routes.engine_routes import engine_bp
 
 def create_app():
     app = Flask(__name__)
@@ -20,6 +21,7 @@ def create_app():
     app.register_blueprint(doctor_bp)
     app.register_blueprint(bed_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(engine_bp)
     
     # Global error handler
     @app.errorhandler(Exception)
@@ -37,7 +39,9 @@ def create_app():
                 "/patients",
                 "/doctors",
                 "/beds",
-                "/analytics/total_patients"
+                "/analytics/total_patients",
+                "/engine/emergency_queue",
+                "/engine/dashboard_summary"
             ]
         })
 

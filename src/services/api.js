@@ -115,3 +115,22 @@ export const getTotalPatients = () => fetchAPI("/analytics/total_patients");
 export const getCriticalPatients = () => fetchAPI("/analytics/critical_patients");
 export const getBedOccupancy = () => fetchAPI("/analytics/bed_occupancy");
 export const getDoctorAvailability = () => fetchAPI("/analytics/doctor_availability");
+
+// ── Engine & Advanced Analytics ───────────────────────────
+export const calculateSeverity = (symptoms) => {
+  return fetchAPI("/engine/calculate_severity", {
+    method: "POST",
+    body: JSON.stringify({ symptoms }),
+  });
+};
+
+export const getPriorityQueue = () => fetchAPI("/engine/emergency_queue");
+
+export const getDashboardSummary = () => fetchAPI("/engine/dashboard_summary");
+
+export const getSeverityDistribution = () => fetchAPI("/engine/viz/severity_distribution");
+
+export const getDepartmentDistribution = () => fetchAPI("/engine/viz/department_distribution");
+
+export const getAdmissionTrends = () => fetchAPI("/engine/viz/admission_trends");
+
