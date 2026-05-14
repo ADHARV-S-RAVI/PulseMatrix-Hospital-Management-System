@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { SeverityChart, DepartmentChart, AdmissionsChart, BedOccupancyChart } from "../components/Charts";
 import PulseOrb from "../components/PulseOrb";
-import { motion } from "motion/react";
+import AmbulanceTracker from "../components/AmbulanceTracker";
+import AIHologramAssistant from "../components/AIHologramAssistant";
+import { motion, AnimatePresence } from "motion/react";
 
 const SEVERITY_CLS = {
   Critical: "severity-critical",
@@ -21,7 +23,10 @@ const STATUS_CLS = {
 };
 
 export default function Dashboard({ onNavigate }) {
-  const { patients, doctors, beds, admissions } = useApp();
+  const { patients, doctors, beds, admissions, disasterMode, aiPredictions, toggleDisasterMode } = useApp();
+
+  // Highest risk for the Orb
+  const highestRisk = Math.max(...aiPredictions.map(p => p.risk));
 
   // Active non-discharged patients
   const active = patients.filter(p => p.status !== "Discharged");
@@ -74,20 +79,68 @@ export default function Dashboard({ onNavigate }) {
       <div className="scanning-line" />
 
       {/* Page header */}
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 pb-3 border-bottom gap-4 position-relative" style={{ zIndex: 1 }}>
+      <div className={`d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 pb-3 border-bottom gap-4 position-relative ${disasterMode ? 'disaster-header' : ''}`} style={{ zIndex: 1 }}>
         <div className="d-flex align-items-center gap-4">
           <div style={{ width: 100, height: 100, flexShrink: 0 }} className="d-none d-md-block">
-            <PulseOrb />
+            <PulseOrb risk={highestRisk} />
           </div>
           <div>
-            <h2 className="fw-bold text-dark mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Emergency Operations Dashboard</h2>
-            <p className="text-muted small mb-0">Real-time hospital overview, severity metrics & resource analytics.</p>
+            <h2 className={`fw-bold mb-1 ${disasterMode ? 'text-danger' : 'text-dark'}`} style={{ fontFamily: "Outfit, sans-serif" }}>
+              {disasterMode ? "MASS CASUALTY COMMAND MODE" : "Emergency Operations Dashboard"}
+            </h2>
+            <p className="text-muted small mb-0">
+              {disasterMode ? "Disaster response active. Resource prioritization engaged." : "Real-time hospital overview, severity metrics & resource analytics."}
+            </p>
           </div>
         </div>
-        <button className="btn btn-primary-gradient px-4 py-2" onClick={() => onNavigate("registration")}>
-          <i className="bi bi-plus-lg me-1" /> New Patient Ingest
-        </button>
+        <div className="d-flex gap-3">
+          <button 
+            className={`btn ${disasterMode ? 'btn-danger' : 'btn-outline-danger'} px-3`}
+            onClick={toggleDisasterMode}
+          >
+            <i className={`bi ${disasterMode ? 'bi-shield-fill-exclamation' : 'bi-shield-exclamation'} me-2`} />
+            {disasterMode ? "Exit Disaster Mode" : "Disaster Mode"}
+          </button>
+          <button className="btn btn-primary-gradient px-4 py-2" onClick={() => onNavigate("registration")}>
+            <i className="bi bi-plus-lg me-1" /> New Patient Ingest
+          </button>
+        </div>
       </div>
+
+      {/* AI Emergency Prediction Engine */}
+      <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
+        <div className="col-12">
+          <div className="d-flex align-items-center gap-2 mb-3">
+            <div className="ai-status-pulse" />
+            <h3 className="fs-6 fw-bold mb-0 text-uppercase letter-spacing-1">AI Emergency Prediction Engine</h3>
+          </div>
+        </div>
+        {aiPredictions.map((pred, i) => (
+          <motion.div 
+            key={pred.id}
+            className="col-md-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <div className="glass-panel p-3 border-start border-4" style={{ borderColor: pred.color }}>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-muted small text-uppercase fw-bold">{pred.type}</div>
+                  <div className="fs-4 fw-bold" style={{ color: pred.color }}>{pred.risk}% <span className="fs-6 fw-normal">Risk</span></div>
+                </div>
+                <div className={`risk-trend ${pred.trend}`}>
+                  <i className={`bi bi-graph-${pred.trend === 'up' ? 'up-arrow' : pred.trend === 'down' ? 'down-arrow' : 'line'} fs-3`} />
+                </div>
+              </div>
+              <div className="progress mt-2" style={{ height: "4px", background: "rgba(255,255,255,0.1)" }}>
+                <div className="progress-bar" style={{ width: `${pred.risk}%`, background: pred.color }} />
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
 
       {/* Metric Cards */}
       <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
@@ -198,6 +251,31 @@ export default function Dashboard({ onNavigate }) {
         </motion.div>
       </div>
 
+      {/* Ambulance Tracker Section */}
+      <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
+        <div className="col-12">
+          <motion.div 
+            className="glass-panel p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h3 className="fs-6 fw-bold mb-0">Smart Ambulance Tracking & Route Optimization</h3>
+                <p className="text-muted small mb-0">Live satellite telemetry and traffic-aware dispatching.</p>
+              </div>
+              <div className="d-flex gap-2">
+                <span className="badge bg-success-subtle text-success border border-success-subtle">5 Units Active</span>
+                <span className="badge bg-info-subtle text-info border border-info-subtle">Optimizing ETA</span>
+              </div>
+            </div>
+            <AmbulanceTracker />
+          </motion.div>
+        </div>
+      </div>
+
+
       {/* Recent Ingest Table */}
       <motion.div 
         className="glass-panel p-4 position-relative" 
@@ -240,6 +318,37 @@ export default function Dashboard({ onNavigate }) {
           </table>
         </div>
       </motion.div>
+
+
+      {/* Floating AI Assistant */}
+      <AIHologramAssistant />
+
+      <style>{`
+        .ai-status-pulse {
+          width: 10px;
+          height: 10px;
+          background: #0ea5e9;
+          border-radius: 50%;
+          box-shadow: 0 0 10px #0ea5e9;
+          animation: ai-pulse 2s infinite;
+        }
+        @keyframes ai-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .letter-spacing-1 { letter-spacing: 1px; }
+        .risk-trend.up { color: #f43f5e; }
+        .risk-trend.down { color: #10b981; }
+        .risk-trend.stable { color: #f59e0b; }
+        
+        .disaster-header {
+          background: rgba(244, 63, 94, 0.05);
+          border-radius: 12px;
+          padding: 15px;
+          border-bottom-color: #f43f5e !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -52,8 +52,60 @@ h1,h2,h3,h4,h5,h6 {
   box-shadow: var(--glass-shadow);
   border-radius: 16px;
   transition: box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 .glass-panel:hover { box-shadow: 0 12px 40px rgba(15,23,42,0.13); }
+
+/* ── Cyber Medical Utilities ─────────────────────────────── */
+.ai-prediction-card {
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: rgba(15, 23, 42, 0.03);
+  position: relative;
+}
+.ai-prediction-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: scanning 3s linear infinite;
+}
+
+@keyframes scanning {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.disaster-alert-active {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: disaster-glow 2s infinite;
+}
+
+@keyframes disaster-glow {
+  0% { box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1); }
+  50% { box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.2); }
+  100% { box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1); }
+}
+
+.hologram-glitch {
+  position: relative;
+  overflow: hidden;
+}
+.hologram-glitch::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+  pointer-events: none;
+}
+
+.cyber-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.3), transparent);
+  margin: 1.5rem 0;
+}
+
 
 /* ── Layout ──────────────────────────────────────────────── */
 #app-container {
