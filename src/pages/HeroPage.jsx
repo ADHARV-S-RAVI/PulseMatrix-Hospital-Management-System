@@ -10,9 +10,12 @@
  */
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { motion } from "motion/react";
 
 export default function HeroPage({ onEnter }) {
   const mountRef = useRef(null);
+
+  // ... (Three.js setup remains exactly the same, omitted for brevity in instruction but I will keep it)
 
   useEffect(() => {
     const container = mountRef.current;
@@ -31,125 +34,102 @@ export default function HeroPage({ onEnter }) {
     camera.position.set(0, 0, 22);
 
     /* ── Lighting ─────────────────────────────────────────── */
-    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-    const pointA = new THREE.PointLight(0x0ea5e9, 6, 60);
-    pointA.position.set(10, 10, 10);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+    const pointA = new THREE.PointLight(0x0ea5e9, 10, 80);
+    pointA.position.set(20, 20, 20);
     scene.add(pointA);
-    const pointB = new THREE.PointLight(0x6366f1, 5, 60);
-    pointB.position.set(-10, -8, 8);
+    const pointB = new THREE.PointLight(0x6366f1, 8, 80);
+    pointB.position.set(-20, -15, 15);
     scene.add(pointB);
-    const pointC = new THREE.PointLight(0xf43f5e, 4, 50);
-    pointC.position.set(0, -12, -5);
-    scene.add(pointC);
 
-    /* ── Central Torus-Knot (DNA / pulse motif) ───────────── */
-    const knotGeo = new THREE.TorusKnotGeometry(5, 1.4, 180, 24, 2, 3);
-    const knotMat = new THREE.MeshPhongMaterial({
+    // Interactive mouse light
+    const mouseLight = new THREE.PointLight(0xf43f5e, 15, 40);
+    scene.add(mouseLight);
+
+    /* ── Cyber-Grid Floor ─────────────────────────────────── */
+    const gridGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
+    const gridMat = new THREE.MeshBasicMaterial({
       color: 0x0ea5e9,
-      emissive: 0x0284c7,
-      emissiveIntensity: 0.35,
-      shininess: 120,
-      wireframe: false,
+      wireframe: true,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.08,
+    });
+    const grid = new THREE.Mesh(gridGeo, gridMat);
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = -15;
+    scene.add(grid);
+
+    /* ── Central Nano-Knot (Enhanced) ─────────────────────── */
+    const knotGeo = new THREE.TorusKnotGeometry(5, 1.4, 250, 32, 2, 3);
+    const knotMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0ea5e9,
+      metalness: 0.9,
+      roughness: 0.1,
+      transmission: 0.5,
+      thickness: 2,
+      ior: 1.5,
+      emissive: 0x0ea5e9,
+      emissiveIntensity: 0.5,
+      transparent: true,
+      opacity: 0.9,
     });
     const knot = new THREE.Mesh(knotGeo, knotMat);
     scene.add(knot);
 
-    /* Wireframe overlay on knot for depth */
-    const knotWire = new THREE.Mesh(
-      knotGeo,
-      new THREE.MeshBasicMaterial({ color: 0x7dd3fc, wireframe: true, transparent: true, opacity: 0.12 })
-    );
-    scene.add(knotWire);
+    // Floating data rings around knot
+    const ringGroup = new THREE.Group();
+    scene.add(ringGroup);
+    for (let i = 0; i < 3; i++) {
+      const rGeo = new THREE.TorusGeometry(7 + i * 1.2, 0.03, 8, 100);
+      const rMat = new THREE.MeshBasicMaterial({ 
+        color: i === 1 ? 0xf43f5e : 0x0ea5e9, 
+        transparent: true, 
+        opacity: 0.4 - i * 0.1 
+      });
+      const rMesh = new THREE.Mesh(rGeo, rMat);
+      rMesh.rotation.x = Math.random() * Math.PI;
+      rMesh.rotation.y = Math.random() * Math.PI;
+      ringGroup.add(rMesh);
+    }
 
-    /* ── Orbiting Spheres (hospital nodes) ────────────────── */
+    /* ── Orbiting Nodes ───────────────────────────────────── */
     const orbitGroup = new THREE.Group();
     scene.add(orbitGroup);
 
     const orbitData = [
-      { r: 9.5, speed: 0.4, phase: 0, color: 0xf43f5e, size: 0.55, tiltX: 0.3, tiltZ: 0 },
-      { r: 11, speed: 0.28, phase: Math.PI * 0.6, color: 0x10b981, size: 0.7, tiltX: -0.5, tiltZ: 0.2 },
-      { r: 8, speed: 0.55, phase: Math.PI * 1.2, color: 0xf59e0b, size: 0.4, tiltX: 0.1, tiltZ: 0.6 },
-      { r: 12.5, speed: 0.2, phase: Math.PI * 1.8, color: 0xa78bfa, size: 0.85, tiltX: -0.2, tiltZ: -0.3 },
-      { r: 7.5, speed: 0.65, phase: Math.PI * 0.9, color: 0x38bdf8, size: 0.45, tiltX: 0.7, tiltZ: 0.1 },
+      { r: 9.5, speed: 0.4, phase: 0, color: 0xf43f5e, size: 0.55 },
+      { r: 11.5, speed: 0.28, phase: Math.PI * 0.6, color: 0x10b981, size: 0.7 },
+      { r: 8.5, speed: 0.55, phase: Math.PI * 1.2, color: 0xf59e0b, size: 0.4 },
+      { r: 13, speed: 0.2, phase: Math.PI * 1.8, color: 0xa78bfa, size: 0.85 },
+      { r: 10, speed: 0.65, phase: Math.PI * 0.9, color: 0x38bdf8, size: 0.45 },
     ];
 
     const orbitMeshes = orbitData.map(o => {
       const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(o.size, 16, 16),
-        new THREE.MeshPhongMaterial({ color: o.color, emissive: o.color, emissiveIntensity: 0.5, shininess: 80 })
+        new THREE.SphereGeometry(o.size, 32, 32),
+        new THREE.MeshStandardMaterial({ 
+          color: o.color, 
+          emissive: o.color, 
+          emissiveIntensity: 0.8,
+          roughness: 0.2,
+          metalness: 0.8
+        })
       );
       orbitGroup.add(mesh);
       return { mesh, ...o };
     });
 
-    /* ── Ring around knot ─────────────────────────────────── */
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(7.2, 0.08, 6, 100),
-      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.55 })
-    );
-    ring.rotation.x = Math.PI * 0.42;
-    scene.add(ring);
-
-    const ring2 = new THREE.Mesh(
-      new THREE.TorusGeometry(8.8, 0.05, 6, 100),
-      new THREE.MeshBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.35 })
-    );
-    ring2.rotation.x = Math.PI * 0.3;
-    ring2.rotation.z = Math.PI * 0.15;
-    scene.add(ring2);
-
-    /* ── ECG / Heartbeat curve in 3D ─────────────────────── */
-    const ecgPoints = [];
-    const ecgLength = 200;
-    const ecgWidth = 28;
-    for (let i = 0; i < ecgLength; i++) {
-      const t = i / ecgLength;
-      const x = (t - 0.5) * ecgWidth;
-      let y = 0;
-      const seg = (t * 6) % 1;
-      if (seg < 0.3) y = 0;
-      else if (seg < 0.38) y = (seg - 0.3) / 0.08 * 0.6;
-      else if (seg < 0.46) y = 0.6 - (seg - 0.38) / 0.08 * 2.5;
-      else if (seg < 0.52) y = -1.9 + (seg - 0.46) / 0.06 * 4.8;
-      else if (seg < 0.58) y = 2.9 - (seg - 0.52) / 0.06 * 3.5;
-      else if (seg < 0.64) y = -0.6 + (seg - 0.58) / 0.06 * 0.8;
-      else y = 0.2 - (seg - 0.64) / 0.36 * 0.2;
-      ecgPoints.push(new THREE.Vector3(x, y - 10, 0));
-    }
-    const ecgCurve = new THREE.CatmullRomCurve3(ecgPoints);
-    const ecgGeo = new THREE.TubeGeometry(ecgCurve, 300, 0.06, 5, false);
-    const ecgMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.7 });
-    scene.add(new THREE.Mesh(ecgGeo, ecgMat));
-
-    /* ── Star Particle Field ──────────────────────────────── */
-    const starCount = 2200;
+    /* ── Star Field (Dynamic) ─────────────────────────────── */
+    const starCount = 3000;
     const starPositions = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount * 3; i++) {
-      starPositions[i] = (Math.random() - 0.5) * 300;
+      starPositions[i] = (Math.random() - 0.5) * 400;
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0.65 });
-    scene.add(new THREE.Points(starGeo, starMat));
-
-    /* Small colored accent particles */
-    const accentCount = 300;
-    const accentPos = new Float32Array(accentCount * 3);
-    const accentColors = new Float32Array(accentCount * 3);
-    const palette = [[0.06, 0.64, 0.91], [0.39, 0.40, 0.95], [0.96, 0.25, 0.37], [0.06, 0.73, 0.51]];
-    for (let i = 0; i < accentCount; i++) {
-      accentPos[i * 3] = (Math.random() - 0.5) * 120;
-      accentPos[i * 3 + 1] = (Math.random() - 0.5) * 120;
-      accentPos[i * 3 + 2] = (Math.random() - 0.5) * 120;
-      const col = palette[Math.floor(Math.random() * palette.length)];
-      accentColors[i * 3] = col[0]; accentColors[i * 3 + 1] = col[1]; accentColors[i * 3 + 2] = col[2];
-    }
-    const accentGeo = new THREE.BufferGeometry();
-    accentGeo.setAttribute("position", new THREE.BufferAttribute(accentPos, 3));
-    accentGeo.setAttribute("color", new THREE.BufferAttribute(accentColors, 3));
-    scene.add(new THREE.Points(accentGeo, new THREE.PointsMaterial({ size: 0.35, vertexColors: true, transparent: true, opacity: 0.75 })));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
 
     /* ── Mouse parallax ───────────────────────────────────── */
     let mx = 0, my = 0;
@@ -177,35 +157,36 @@ export default function HeroPage({ onEnter }) {
       rafId = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
 
-      knot.rotation.x = t * 0.12;
-      knot.rotation.y = t * 0.19;
-      knotWire.rotation.copy(knot.rotation);
+      knot.rotation.x = t * 0.2;
+      knot.rotation.y = t * 0.3;
+      knotMat.emissiveIntensity = 0.5 + Math.sin(t * 2) * 0.3;
 
-      ring.rotation.z = t * 0.08;
-      ring2.rotation.z = -t * 0.05;
+      ringGroup.children.forEach((r, i) => {
+        r.rotation.x += 0.01 * (i + 1);
+        r.rotation.y += 0.005 * (i + 1);
+      });
 
-      // Orbit spheres
       orbitMeshes.forEach(o => {
         const angle = t * o.speed + o.phase;
         o.mesh.position.set(
           Math.cos(angle) * o.r,
-          Math.sin(angle * 0.7 + o.tiltX) * o.r * 0.4 + o.tiltX * 2,
-          Math.sin(angle) * o.r * 0.5 + o.tiltZ * 2
+          Math.sin(angle * 0.8) * o.r * 0.3,
+          Math.sin(angle) * o.r * 0.6
         );
-        const scale = 1 + Math.sin(t * 2 + o.phase) * 0.12;
-        o.mesh.scale.setScalar(scale);
+        o.mesh.scale.setScalar(1 + Math.sin(t * 3 + o.phase) * 0.15);
       });
 
-      // Subtle camera drift following mouse
-      camera.position.x += (mx * 1.8 - camera.position.x) * 0.03;
-      camera.position.y += (-my * 1.2 - camera.position.y) * 0.03;
+      // Camera & Mouse light drift
+      const targetX = mx * 5;
+      const targetY = -my * 5;
+      camera.position.x += (targetX - camera.position.x) * 0.05;
+      camera.position.y += (targetY - camera.position.y) * 0.05;
       camera.lookAt(0, 0, 0);
 
-      // Pulse knot emissive
-      knotMat.emissiveIntensity = 0.25 + Math.sin(t * 1.5) * 0.15;
+      mouseLight.position.set(mx * 15, -my * 15, 10);
 
-      // Rotate star field slowly
-      starGeo.attributes.position.needsUpdate = false; // static, no update needed
+      stars.rotation.y = t * 0.02;
+      grid.position.z = (t * 10) % 5; // Infinite grid scroll
 
       renderer.render(scene, camera);
     };
@@ -233,7 +214,12 @@ export default function HeroPage({ onEnter }) {
         {/* Glassmorphism overlay content */}
         <div className="hero-overlay">
           {/* Top accent bar */}
-          <div className="hero-top-bar">
+          <motion.div 
+            className="hero-top-bar"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5 }}
+          >
             <div className="hero-status-pill">
               <span className="status-dot" />
               <span>All Systems Operational</span>
@@ -241,54 +227,96 @@ export default function HeroPage({ onEnter }) {
             <div className="hero-top-right text-muted small">
               v2.0 — Emergency Command Centre
             </div>
-          </div>
+          </motion.div>
 
           {/* Central hero content */}
           <div className="hero-center">
-            <div className="hero-badge mb-4">
+            <motion.div 
+              className="hero-badge mb-4"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+            >
               <i className="bi bi-hospital me-2" />
               Smart Hospital Emergency Management
-            </div>
+            </motion.div>
 
-            <h1 className="hero-title">
+            <motion.h1 
+              className="hero-title"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, delay: 1 }}
+            >
               <span className="hero-title-thin">Welcome to</span>
               <br />
               Pulse<span className="hero-title-accent">_Matrix</span>
-            </h1>
+            </motion.h1>
 
-            <p className="hero-subtitle">
+            <motion.p 
+              className="hero-subtitle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 1.3 }}
+            >
               Real-time triage intelligence, bed analytics &amp; personnel orchestration
               <br className="d-none d-md-block" />
               for modern emergency command operations.
-            </p>
+            </motion.p>
 
             {/* Feature pills */}
-            <div className="hero-features">
+            <motion.div 
+              className="hero-features"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 1.6 }}
+            >
               {[
                 { icon: "bi-heart-pulse", label: "Live Vitals Tracking" },
                 { icon: "bi-bar-chart", label: "4 Analytics Charts" },
                 { icon: "bi-people-fill", label: "Doctor Management" },
                 { icon: "bi-hospital", label: "Bed Array Control" },
-              ].map(f => (
-                <div className="hero-feature-pill" key={f.label}>
+              ].map((f, i) => (
+                <motion.div 
+                  className="hero-feature-pill" 
+                  key={f.label}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                >
                   <i className={`bi ${f.icon}`} /> {f.label}
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
-            <button className="hero-cta" onClick={onEnter}>
+            <motion.button 
+              className="hero-cta" 
+              onClick={onEnter}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(14, 165, 233, 0.4)" }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.5, delay: 2 }}
+            >
               <i className="bi bi-unlock-fill me-2" />
               Enter Command Center
               <i className="bi bi-arrow-right ms-2" />
-            </button>
+            </motion.button>
 
-            <p className="hero-disclaimer mt-3 text-muted small">
+            <motion.p 
+              className="hero-disclaimer mt-3 text-muted small"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.3 }}
+            >
               Secure admin access · HIPAA compliant simulation
-            </p>
+            </motion.p>
           </div>
 
           {/* Bottom stat strip */}
-          <div className="hero-stats-bar">
+          <motion.div 
+            className="hero-stats-bar"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 2.5 }}
+          >
             {[
               { value: "99.9%", label: "Uptime SLA" },
               { value: "<2s", label: "Response Latency" },
@@ -300,7 +328,7 @@ export default function HeroPage({ onEnter }) {
                 <div className="hero-stat-label">{s.label}</div>
               </div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
 

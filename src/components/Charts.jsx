@@ -72,9 +72,13 @@ function useChart(canvasRef, config, depKey) {
 }
 
 /* ── Shared style constants ───────────────────────────────── */
-const FONT = { family: "Inter", size: 12, weight: "500" };
-const GRID = { color: "rgba(226,232,240,0.6)" };
-const ANIM = { duration: 600 };
+const FONT = { family: "Outfit, sans-serif", size: 12, weight: "600" };
+const GRID = { color: "rgba(226,232,240,0.4)" };
+const ANIM = {
+  duration: 2000,
+  easing: "easeOutElastic",
+  delay: (context) => context.dataIndex * 150, // Staggered bars/points
+};
 
 /* ─────────────────────────────────────────────────────────── */
 /* 1. Severity Pie Chart                                        */

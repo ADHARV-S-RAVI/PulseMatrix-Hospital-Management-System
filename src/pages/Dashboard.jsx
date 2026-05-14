@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { SeverityChart, DepartmentChart, AdmissionsChart, BedOccupancyChart } from "../components/Charts";
+import PulseOrb from "../components/PulseOrb";
+import { motion } from "motion/react";
 
 const SEVERITY_CLS = {
   Critical: "severity-critical",
@@ -66,22 +68,37 @@ export default function Dashboard({ onNavigate }) {
   ];
 
   return (
-    <div>
+    <div className="position-relative overflow-hidden" style={{ minHeight: "100%" }}>
+      {/* 3D HUD & Scanning Effects */}
+      <div className="dashboard-hud-overlay" />
+      <div className="scanning-line" />
+
       {/* Page header */}
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 pb-2 border-bottom gap-3">
-        <div>
-          <h2 className="fw-bold text-dark mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Emergency Operations Dashboard</h2>
-          <p className="text-muted small mb-0">Real-time hospital overview, severity metrics & resource analytics.</p>
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 pb-3 border-bottom gap-4 position-relative" style={{ zIndex: 1 }}>
+        <div className="d-flex align-items-center gap-4">
+          <div style={{ width: 100, height: 100, flexShrink: 0 }} className="d-none d-md-block">
+            <PulseOrb />
+          </div>
+          <div>
+            <h2 className="fw-bold text-dark mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Emergency Operations Dashboard</h2>
+            <p className="text-muted small mb-0">Real-time hospital overview, severity metrics & resource analytics.</p>
+          </div>
         </div>
-        <button className="btn btn-primary-gradient" onClick={() => onNavigate("registration")}>
+        <button className="btn btn-primary-gradient px-4 py-2" onClick={() => onNavigate("registration")}>
           <i className="bi bi-plus-lg me-1" /> New Patient Ingest
         </button>
       </div>
 
       {/* Metric Cards */}
-      <div className="row g-4 mb-4">
+      <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
         {metrics.map((m, i) => (
-          <div key={i} className="col-sm-6 col-xl-3">
+          <motion.div 
+            key={i} 
+            className="col-sm-6 col-xl-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 * i, duration: 0.6 }}
+          >
             <div className={`metric-card ${m.cls}`}>
               <div>
                 <div className="metric-header">
@@ -95,14 +112,21 @@ export default function Dashboard({ onNavigate }) {
                 <span>{m.footer}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Charts Row 1 */}
-      <div className="row g-4 mb-4">
-        <div className="col-lg-5 col-xl-4">
-          <div className="glass-panel p-4 h-100">
+      <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
+        <motion.div 
+          className="col-lg-5 col-xl-4"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ rotateY: -5, rotateX: 2, scale: 1.02 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+          style={{ perspective: 1000 }}
+        >
+          <div className="glass-panel p-4 h-100 glow-pulse">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h3 className="fs-6 fw-bold mb-0">Severity Analysis</h3>
               <span className="badge bg-light text-dark border">Pie Chart</span>
@@ -112,9 +136,16 @@ export default function Dashboard({ onNavigate }) {
               <SeverityChart labels={severityLabels} data={severityValues} />
             </div>
           </div>
-        </div>
-        <div className="col-lg-7 col-xl-8">
-          <div className="glass-panel p-4 h-100">
+        </motion.div>
+        <motion.div 
+          className="col-lg-7 col-xl-8"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ rotateY: 5, rotateX: 2, scale: 1.01 }}
+          transition={{ delay: 0.5, duration: 0.8 }}
+          style={{ perspective: 1000 }}
+        >
+          <div className="glass-panel p-4 h-100 glow-pulse">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h3 className="fs-6 fw-bold mb-0">Department Admissions Load</h3>
               <span className="badge bg-light text-dark border">Bar Graph</span>
@@ -124,13 +155,20 @@ export default function Dashboard({ onNavigate }) {
               <DepartmentChart labels={departmentLabels} data={departmentValues} />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Charts Row 2 */}
-      <div className="row g-4 mb-4">
-        <div className="col-lg-7 col-xl-8">
-          <div className="glass-panel p-4 h-100">
+      <div className="row g-4 mb-4 position-relative" style={{ zIndex: 1 }}>
+        <motion.div 
+          className="col-lg-7 col-xl-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ rotateX: -5, scale: 1.01 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          style={{ perspective: 1000 }}
+        >
+          <div className="glass-panel p-4 h-100 glow-pulse">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h3 className="fs-6 fw-bold mb-0">Daily Admissions Trend</h3>
               <span className="badge bg-light text-dark border">Line Chart</span>
@@ -140,9 +178,16 @@ export default function Dashboard({ onNavigate }) {
               <AdmissionsChart labels={trendsLabels} data={trendsValues} />
             </div>
           </div>
-        </div>
-        <div className="col-lg-5 col-xl-4">
-          <div className="glass-panel p-4 h-100">
+        </motion.div>
+        <motion.div 
+          className="col-lg-5 col-xl-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ rotateX: -5, rotateY: 5, scale: 1.02 }}
+          transition={{ delay: 0.7, duration: 0.8 }}
+          style={{ perspective: 1000 }}
+        >
+          <div className="glass-panel p-4 h-100 glow-pulse">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <h3 className="fs-6 fw-bold mb-0">Bed Occupancy Inventory</h3>
               <span className="badge bg-light text-dark border">Doughnut Chart</span>
@@ -150,11 +195,17 @@ export default function Dashboard({ onNavigate }) {
             <p className="text-muted small mb-3">Real-time bed status proportions.</p>
             <div style={{ height: 310 }}><BedOccupancyChart /></div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Recent Ingest Table */}
-      <div className="glass-panel p-4">
+      <motion.div 
+        className="glass-panel p-4 position-relative" 
+        style={{ zIndex: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9, duration: 1 }}
+      >
         <div className="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h3 className="fs-6 fw-bold mb-0">Recent Ingest Flow</h3>
@@ -188,7 +239,7 @@ export default function Dashboard({ onNavigate }) {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

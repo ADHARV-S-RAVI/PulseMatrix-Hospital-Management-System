@@ -996,6 +996,49 @@ option, select option {
 .pat-notices-list li { font-size: 0.92rem; color: #475569; line-height: 1.6; padding: 0.6rem; background: #f8fafc; border-radius: 10px; }
 
 /* ═══════════════════════════════════════════════════════════
+   FUTURISTIC HUD & SCANNING EFFECTS
+   ═══════════════════════════════════════════════════════════ */
+.dashboard-hud-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.03;
+  background-image: 
+    linear-gradient(var(--primary) 1px, transparent 1px),
+    linear-gradient(90deg, var(--primary) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.scanning-line {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  box-shadow: 0 0 15px var(--primary);
+  z-index: 10;
+  opacity: 0.15;
+  animation: scanMove 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanMove {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
+}
+
+.glow-pulse {
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(14, 165, 233, 0.2)); }
+  50% { filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.5)); }
+}
+
+/* ... (Remaining animated bed grid and theme styles) */
+
+
+/* ═══════════════════════════════════════════════════════════
    ANIMATED BED ARRAY & HUD
    ═══════════════════════════════════════════════════════════ */
 .animated-bed-grid {
