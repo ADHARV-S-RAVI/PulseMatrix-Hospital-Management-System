@@ -11,6 +11,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { motion } from "motion/react";
+import HospitalFooter from "../components/HospitalFooter";
 
 export default function HeroPage({ onEnter }) {
   const mountRef = useRef(null);
@@ -81,10 +82,10 @@ export default function HeroPage({ onEnter }) {
     scene.add(ringGroup);
     for (let i = 0; i < 3; i++) {
       const rGeo = new THREE.TorusGeometry(7 + i * 1.2, 0.03, 8, 100);
-      const rMat = new THREE.MeshBasicMaterial({ 
-        color: i === 1 ? 0xf43f5e : 0x0ea5e9, 
-        transparent: true, 
-        opacity: 0.4 - i * 0.1 
+      const rMat = new THREE.MeshBasicMaterial({
+        color: i === 1 ? 0xf43f5e : 0x0ea5e9,
+        transparent: true,
+        opacity: 0.4 - i * 0.1
       });
       const rMesh = new THREE.Mesh(rGeo, rMat);
       rMesh.rotation.x = Math.random() * Math.PI;
@@ -107,9 +108,9 @@ export default function HeroPage({ onEnter }) {
     const orbitMeshes = orbitData.map(o => {
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(o.size, 32, 32),
-        new THREE.MeshStandardMaterial({ 
-          color: o.color, 
-          emissive: o.color, 
+        new THREE.MeshStandardMaterial({
+          color: o.color,
+          emissive: o.color,
           emissiveIntensity: 0.8,
           roughness: 0.2,
           metalness: 0.8
@@ -214,7 +215,7 @@ export default function HeroPage({ onEnter }) {
         {/* Glassmorphism overlay content */}
         <div className="hero-overlay">
           {/* Top accent bar */}
-          <motion.div 
+          <motion.div
             className="hero-top-bar"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -231,7 +232,7 @@ export default function HeroPage({ onEnter }) {
 
           {/* Central hero content */}
           <div className="hero-center">
-            <motion.div 
+            <motion.div
               className="hero-badge mb-4"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -241,7 +242,7 @@ export default function HeroPage({ onEnter }) {
               Smart Hospital Emergency Management
             </motion.div>
 
-            <motion.h1 
+            <motion.h1
               className="hero-title"
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -252,7 +253,7 @@ export default function HeroPage({ onEnter }) {
               Pulse<span className="hero-title-accent">_Matrix</span>
             </motion.h1>
 
-            <motion.p 
+            <motion.p
               className="hero-subtitle"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -264,7 +265,7 @@ export default function HeroPage({ onEnter }) {
             </motion.p>
 
             {/* Feature pills */}
-            <motion.div 
+            <motion.div
               className="hero-features"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -276,8 +277,8 @@ export default function HeroPage({ onEnter }) {
                 { icon: "bi-people-fill", label: "Doctor Management" },
                 { icon: "bi-hospital", label: "Bed Array Control" },
               ].map((f, i) => (
-                <motion.div 
-                  className="hero-feature-pill" 
+                <motion.div
+                  className="hero-feature-pill"
                   key={f.label}
                   whileHover={{ scale: 1.05, y: -5 }}
                 >
@@ -286,8 +287,8 @@ export default function HeroPage({ onEnter }) {
               ))}
             </motion.div>
 
-            <motion.button 
-              className="hero-cta" 
+            <motion.button
+              className="hero-cta"
               onClick={onEnter}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -300,7 +301,7 @@ export default function HeroPage({ onEnter }) {
               <i className="bi bi-arrow-right ms-2" />
             </motion.button>
 
-            <motion.p 
+            <motion.p
               className="hero-disclaimer mt-3 text-muted small"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -311,7 +312,7 @@ export default function HeroPage({ onEnter }) {
           </div>
 
           {/* Bottom stat strip */}
-          <motion.div 
+          <motion.div
             className="hero-stats-bar"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -396,7 +397,6 @@ export default function HeroPage({ onEnter }) {
             </div>
             <div className="info-modules-grid">
               {[
-                { icon: "bi-box-arrow-in-right", title: "Login Portal", desc: "Role-based authentication with Admin and Patient access flows.", color: "#0ea5e9" },
                 { icon: "bi-speedometer2", title: "Admin Dashboard", desc: "Live KPI cards, severity analysis, department load & bed occupancy charts.", color: "#6366f1" },
                 { icon: "bi-person-badge-fill", title: "Patient Portal", desc: "Self-service case view with vitals, treatment timeline & physician info.", color: "#10b981" },
                 { icon: "bi-clipboard2-plus-fill", title: "Patient Registration", desc: "Intake form with triage routing, severity scoring & resource pre-allocation.", color: "#f59e0b" },
@@ -410,63 +410,6 @@ export default function HeroPage({ onEnter }) {
                   </div>
                   <h3 className="info-module-title">{m.title}</h3>
                   <p className="info-module-desc">{m.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Tech Stack */}
-        <div className="info-tech-band">
-          <div className="info-container">
-            <div className="text-center mb-5">
-              <span className="info-eyebrow">Technology Stack</span>
-              <h2 className="info-section-title">Built With</h2>
-            </div>
-            <div className="info-tech-row">
-              {[
-                { name: "React 18", icon: "bi-filetype-jsx", color: "#61dafb", note: "Component framework" },
-                { name: "Vite", icon: "bi-lightning-fill", color: "#fbbf24", note: "Build tooling" },
-                { name: "Bootstrap 5", icon: "bi-bootstrap-fill", color: "#7c3aed", note: "Layout & components" },
-                { name: "Chart.js", icon: "bi-pie-chart-fill", color: "#f43f5e", note: "Data visualization" },
-                { name: "Three.js", icon: "bi-box", color: "#0ea5e9", note: "3D animation engine" },
-                { name: "HTML5 / CSS3", icon: "bi-code-slash", color: "#10b981", note: "Semantic markup" },
-                { name: "LocalStorage", icon: "bi-database-fill", color: "#f59e0b", note: "State persistence" },
-                { name: "REST API Ready", icon: "bi-cloud-arrow-up-fill", color: "#6366f1", note: "Plug-in backend" },
-              ].map(t => (
-                <div key={t.name} className="info-tech-chip" style={{ "--tech-color": t.color }}>
-                  <i className={`bi ${t.icon}`} style={{ color: t.color }} />
-                  <div>
-                    <div className="info-tech-name">{t.name}</div>
-                    <div className="info-tech-note">{t.note}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Charts showcase */}
-        <div className="info-charts-band">
-          <div className="info-container">
-            <div className="text-center mb-5">
-              <span className="info-eyebrow">Analytics Engine</span>
-              <h2 className="info-section-title">4 Live Chart Types</h2>
-              <p className="info-section-sub">All charts update dynamically from real-time hospital data.</p>
-            </div>
-            <div className="info-charts-grid">
-              {[
-                { icon: "bi-pie-chart-fill", label: "Pie Chart", desc: "Triage severity distribution", color: "#f43f5e" },
-                { icon: "bi-bar-chart-fill", label: "Bar Graph", desc: "Department-wise patient headcount", color: "#0ea5e9" },
-                { icon: "bi-graph-up", label: "Line Chart", desc: "Daily admission trend over 7 days", color: "#10b981" },
-                { icon: "bi-circle-fill", label: "Doughnut Chart", desc: "Bed occupancy vs. availability ratio", color: "#6366f1" },
-              ].map(c => (
-                <div key={c.label} className="info-chart-card" style={{ "--chart-color": c.color }}>
-                  <div className="info-chart-icon" style={{ color: c.color }}>
-                    <i className={`bi ${c.icon}`} />
-                  </div>
-                  <h3 className="info-chart-label">{c.label}</h3>
-                  <p className="info-chart-desc">{c.desc}</p>
                 </div>
               ))}
             </div>
@@ -517,23 +460,8 @@ export default function HeroPage({ onEnter }) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="info-footer">
-          <div className="info-container">
-            <div className="info-footer-inner">
-              <div className="info-footer-brand">
-                <i className="bi bi-heart-pulse-fill text-danger me-2" />
-                Pulse<span className="text-accent-blue">_Matrix</span>
-              </div>
-              <div className="info-footer-note">
-                Smart Hospital Emergency Management System &nbsp;·&nbsp; Frontend Demo v2.0
-              </div>
-              <div className="info-footer-note">
-                Built with React · Vite · Bootstrap · Chart.js · Three.js
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Professional Hospital Footer */}
+        <HospitalFooter />
 
       </div>
     </div>
