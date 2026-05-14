@@ -1,61 +1,31 @@
-import { useState, useEffect } from "react";
-import { getPriorityQueue, updatePatient, deletePatient } from "../services/api";
+import { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { updatePatient as updatePatientAPI, deletePatient as deletePatientAPI } from "../services/api";
 
-const SEV_CLS  = { Critical:"severity-critical", High:"severity-major", Medium:"severity-moderate", Low:"severity-minor" };
+const SEV_CLS  = { Critical:"severity-critical", High:"severity-major", Major:"severity-major", Medium:"severity-moderate", Moderate:"severity-moderate", Low:"severity-minor", Minor:"severity-minor" };
 const STAT_CLS = { "Newly Admitted":"bg-primary","In Treatment":"bg-success","Awaiting Scans":"bg-warning text-dark",Stable:"bg-info text-dark",Recovering:"bg-secondary","Discharge Ready":"bg-dark" };
 
 const DEPTS = ["All","Trauma","Cardiology","Neurology","Pediatrics","General Surgery"];
 const SEVS  = ["All","Critical","High","Medium","Low"];
 
 export default function EmergencyQueue({ addToast }) {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { patients, updatePatient, dischargePatient } = useApp();
   const [dept, setDept] = useState("All");
   const [sev,  setSev]  = useState("All");
   const [editId, setEditId] = useState(null);
   const [editFields, setEditFields] = useState({});
 
-  const fetchPatientData = async () => {
-    try {
-      const data = await getPriorityQueue();
-      const mapped = data.map(p => {
-        let severityLabel = "Low";
-        if (p.score >= 85) severityLabel = "Critical";
-        else if (p.score >= 60) severityLabel = "High";
-        else if (p.score >= 35) severityLabel = "Medium";
-        
-        return {
-           id: `PT-${p.id}`,
-           numericId: p.id,
-           name: p.name,
-           age: p.age || 0,
-           gender: p.gender || "N/A",
-           department: p.department || "ER",
-           severity: severityLabel,
-           severity_score: p.score,
-           status: p.status || "Waiting", 
-           assignedDoctor: null,
-           assignedBed: null,
-           admittedTime: p.arrival_time || "N/A"
-        };
-      });
-      setPatients(mapped);
-    } catch (err) {
-      addToast("Error", "Failed to fetch priority queue", "danger");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  useEffect(() => {
-    fetchPatientData();
-  }, []);
-
-  const active   = patients.filter(p => p.status !== "Discharged");
+  const active = patients.filter(p => p.status !== "Discharged");
   const filtered = active
     .filter(p => dept === "All" || p.department === dept)
-    .filter(p => sev  === "All" || p.severity  === sev);
+    .filter(p => {
+      if (sev === "All") return true;
+      let s = p.severity;
+      if (s === "Major") s = "High";
+      if (s === "Moderate") s = "Medium";
+      if (s === "Minor") s = "Low";
+      return s === sev;
+    });
 
   const openEdit = (p) => {
     setEditId(p.id);
@@ -63,33 +33,45 @@ export default function EmergencyQueue({ addToast }) {
   };
 
   const handleSave = async () => {
-    try {
-       const numericId = patients.find(p => p.id === editId)?.numericId;
-       if (!numericId) return;
+    const pat = patients.find(p => p.id === editId);
+    if (!pat) return;
 
-       const score = editFields.severity === "Critical" ? 90 : editFields.severity === "Major" ? 70 : editFields.severity === "Moderate" ? 50 : 20;
-       
-       await updatePatient(numericId, { severity_score: score });
-       addToast("Triage Updated", `Case ${editId} updated successfully.`, "success");
-       setEditId(null);
-       fetchPatientData(); // refresh list
+    const score = editFields.severity === "Critical" ? 90 : editFields.severity === "Major" || editFields.severity === "High" ? 70 : editFields.severity === "Moderate" || editFields.severity === "Medium" ? 50 : 20;
+    
+    // Update local persistent state immediately
+    updatePatient(editId, { severity: editFields.severity, status: editFields.fields || editFields.status, severity_score: score });
+
+    try {
+      // Best effort backend sync if numeric ID available
+      const numericId = pat.numericId || (pat.id.includes("-") ? parseInt(pat.id.split("-").pop(), 10) : null);
+      if (numericId && !isNaN(numericId)) {
+        await updatePatientAPI(numericId, { severity_score: score });
+      }
     } catch (err) {
-       addToast("Error", "Failed to update triage", "danger");
+      console.warn("Backend update skipped/offline", err);
     }
+
+    addToast("Triage Updated", `Case ${editId} updated successfully.`, "success");
+    setEditId(null);
   };
 
   const handleDischarge = async (id) => {
     if (!window.confirm(`Authorize discharge for case ${id}?`)) return;
+    
+    const pat = patients.find(p => p.id === id);
+    // Persist immediately to unbind associated beds and doctors
+    dischargePatient(id);
+
     try {
-      const numericId = patients.find(p => p.id === id)?.numericId;
-      if (!numericId) return;
-      
-      await deletePatient(numericId);
-      addToast("Patient Discharged", `Case ${id} archived successfully.`, "success");
-      fetchPatientData(); // refresh list
+      const numericId = pat?.numericId || (id.includes("-") ? parseInt(id.split("-").pop(), 10) : null);
+      if (numericId && !isNaN(numericId)) {
+        await deletePatientAPI(numericId);
+      }
     } catch (err) {
-      addToast("Error", "Failed to discharge patient", "danger");
+      console.warn("Backend delete skipped/offline", err);
     }
+
+    addToast("Patient Discharged", `Case ${id} archived successfully.`, "success");
   };
 
   return (
@@ -144,9 +126,7 @@ export default function EmergencyQueue({ addToast }) {
               </tr>
             </thead>
             <tbody>
-              {loading ? 
-                <tr><td colSpan={9} className="text-center py-4"><span className="spinner-border spinner-border-sm me-2" /> Loading patients...</td></tr>
-                : filtered.length === 0
+              {filtered.length === 0
                 ? <tr><td colSpan={9} className="text-center text-muted py-4">No patients match active filters.</td></tr>
                 : filtered.map(p => (
                     <tr key={p.id}>
@@ -155,11 +135,11 @@ export default function EmergencyQueue({ addToast }) {
                         <div className="fw-semibold">{p.name}</div>
                         <small className="text-muted">{p.gender}, {p.age} yrs</small>
                       </td>
-                      <td><span className={`badge-severity ${SEV_CLS[p.severity]}`}>{p.severity}</span></td>
+                      <td><span className={`badge-severity ${SEV_CLS[p.severity] || "severity-moderate"}`}>{p.severity}</span></td>
                       <td>{p.department}</td>
                       <td><span className="badge bg-light text-dark border">{p.assignedBed || "Waiting"}</span></td>
                       <td><small>{p.assignedDoctor || "Unassigned"}</small></td>
-                      <td><small className="text-muted"><i className="bi bi-clock me-1" />{p.admittedTime}</small></td>
+                      <td><small className="text-muted"><i className="bi bi-clock me-1" />{p.admittedTime || "N/A"}</small></td>
                       <td><span className={`badge ${STAT_CLS[p.status] || "bg-light text-dark border"}`}>{p.status}</span></td>
                       <td>
                         <div className="btn-group btn-group-sm">

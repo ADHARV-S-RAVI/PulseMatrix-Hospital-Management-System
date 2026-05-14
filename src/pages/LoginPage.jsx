@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { login, getPatient, addPatient } from "../services/api";
+import { login, registerAdmin, getPatient, addPatient } from "../services/api";
 
 export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) {
   const role = prefilledRole; // role is fixed from the role selection screen
@@ -40,6 +40,18 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
     setError("");
     if (!email || !password) { setError("Please enter credentials."); return; }
     setLoading(true);
+
+    // Check locally registered mock admin first to guarantee login works after registering
+    const localEmail = localStorage.getItem("pm_admin_email");
+    const localPass  = localStorage.getItem("pm_admin_pass");
+    const localName  = localStorage.getItem("pm_admin_name");
+
+    if (localEmail && email.trim() === localEmail && password === localPass) {
+      setLoading(false);
+      onLogin({ role: "admin", userName: localName || localEmail.split("@")[0] });
+      return;
+    }
+
     try {
       const data = await login(email, password);
       onLogin({ role: "admin", userName: data.user?.username || email.split("@")[0] });
@@ -50,7 +62,7 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
     }
   };
 
-  const handleAdminRegisterSubmit = (e) => {
+  const handleAdminRegisterSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (!regAdminName || !regAdminEmail || !regAdminPass) {
@@ -58,10 +70,19 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      onLogin({ role: "admin", userName: regAdminName.trim() });
-    }, 800);
+    try {
+      await registerAdmin(regAdminEmail.trim(), regAdminPass);
+    } catch (err) {
+      console.warn("Backend unavailable/failing, falling back to local admin persistence", err);
+    }
+
+    // Persist locally so login works across sessions reliably
+    localStorage.setItem("pm_admin_email", regAdminEmail.trim());
+    localStorage.setItem("pm_admin_pass", regAdminPass);
+    localStorage.setItem("pm_admin_name", regAdminName.trim());
+
+    setLoading(false);
+    onLogin({ role: "admin", userName: regAdminName.trim() });
   };
 
   const handlePatientSubmit = async (e) => {

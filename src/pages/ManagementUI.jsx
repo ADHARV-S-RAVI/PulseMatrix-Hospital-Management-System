@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { getDoctors, getBeds, updateDoctor, updateBed } from "../services/api";
+import { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { updateDoctor as updateDoctorAPI, updateBed as updateBedAPI } from "../services/api";
 
 const DOC_STATUS_OPTIONS  = ["Available","In Surgery","On Rounds","Off Duty"];
 const BED_STATUS_OPTIONS  = ["Available","Maintenance"];
@@ -23,7 +24,7 @@ function DoctorCard({ doc, onStatusChange }) {
               <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.55rem" }} />{doc.status}
             </span>
             <span className="badge bg-light text-dark border" title="Patient load">
-              <i className="bi bi-people-fill me-1 text-primary" />{doc.currentLoad}
+              <i className="bi bi-people-fill me-1 text-primary" />{doc.currentLoad || 0}
             </span>
           </div>
         </div>
@@ -59,7 +60,7 @@ function BedCard({ bed, onStatusChange }) {
         <div className="d-flex justify-content-between align-items-start mb-2">
           <div>
             <span className="fs-6 fw-bold text-dark">{bed.id}</span>
-            <div className="text-muted" style={{ fontSize: "0.75rem" }}>{bed.department}</div>
+            <div className="text-muted" style={{ fontSize: "0.75rem" }}>{bed.department || "General"}</div>
           </div>
           {badgeEl}
         </div>
@@ -69,7 +70,7 @@ function BedCard({ bed, onStatusChange }) {
             {bed.patient ?? <span className="text-muted fst-italic">Unassigned</span>}
           </div>
           <div className="d-flex justify-content-between align-items-center mt-2">
-            <span className="text-muted" style={{ fontSize: "0.7rem" }}>{bed.type}</span>
+            <span className="text-muted" style={{ fontSize: "0.7rem" }}>{bed.type || "General Ward"}</span>
             {bed.status !== "Occupied" && (
               <div className="dropdown">
                 <span className="text-primary small text-decoration-underline" role="button" data-bs-toggle="dropdown" style={{ fontSize: "0.75rem", cursor: "pointer" }}>
@@ -102,62 +103,32 @@ function BedCard({ bed, onStatusChange }) {
 }
 
 export default function ManagementUI({ addToast }) {
-  const [doctors, setDoctors] = useState([]);
-  const [beds, setBeds] = useState([]);
+  const { doctors, beds, updateDoctorStatus, updateBedStatus } = useApp();
   const [tab, setTab] = useState("doctors");
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    try {
-      const [docsData, bedsData] = await Promise.all([getDoctors(), getBeds()]);
-      
-      const mappedDocs = docsData.map(d => ({
-        id: d.doctor_id,
-        name: d.doctor_name,
-        specialty: d.specialization,
-        status: d.availability,
-        currentLoad: 0 // Mocked
-      }));
-      
-      const mappedBeds = bedsData.map(b => ({
-        id: `BED-${b.bed_id}`,
-        numericId: b.bed_id,
-        type: b.bed_type,
-        department: "General", // Default mapped
-        status: b.status,
-        patient: null
-      }));
-      
-      setDoctors(mappedDocs);
-      setBeds(mappedBeds);
-    } catch (err) {
-      addToast("Error", "Failed to fetch management data", "danger");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const handleDocStatus = async (id, name, status) => {
+    updateDoctorStatus(name, status);
+    addToast("Status Overridden", `${name} → ${status}`, "info");
+
     try {
-      await updateDoctor(id, { availability: status });
-      addToast("Status Overridden", `${name} → ${status}`, "info");
-      fetchData();
+      if (id && !isNaN(id)) {
+        await updateDoctorAPI(id, { availability: status });
+      }
     } catch (err) {
-      addToast("Error", "Failed to update doctor status", "danger");
+      console.warn("Backend update skipped/offline", err);
     }
   };
 
   const handleBedStatus = async (numericId, id, status) => {
+    updateBedStatus(id, status);
+    addToast("Bed Updated", `${id} → ${status}`, "info");
+
     try {
-      await updateBed(numericId, { status: status });
-      addToast("Bed Updated", `${id} → ${status}`, "info");
-      fetchData();
+      if (numericId && !isNaN(numericId)) {
+        await updateBedAPI(numericId, { status: status });
+      }
     } catch (err) {
-      addToast("Error", "Failed to update bed status", "danger");
+      console.warn("Backend update skipped/offline", err);
     }
   };
 
@@ -186,25 +157,57 @@ export default function ManagementUI({ addToast }) {
 
       {tab === "doctors" && (
         <div className="row">
-          {loading ? (
-            <div className="col-12 text-center py-4"><span className="spinner-border text-primary" /></div>
-          ) : doctors.length === 0 ? (
+          {doctors.length === 0 ? (
             <div className="col-12 text-center text-muted py-4">No doctors available.</div>
           ) : doctors.map(doc => (
-            <DoctorCard key={doc.id} doc={doc} onStatusChange={handleDocStatus} />
+            <DoctorCard key={doc.id || doc.name} doc={doc} onStatusChange={handleDocStatus} />
           ))}
         </div>
       )}
 
       {tab === "beds" && (
-        <div className="row">
-          {loading ? (
-             <div className="col-12 text-center py-4"><span className="spinner-border text-primary" /></div>
-          ) : beds.length === 0 ? (
-             <div className="col-12 text-center text-muted py-4">No beds available.</div>
-          ) : beds.map(bed => (
-            <BedCard key={bed.id} bed={bed} onStatusChange={handleBedStatus} />
-          ))}
+        <div>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h4 className="fs-6 fw-bold mb-0 text-primary"><i className="bi bi-display me-2"/>Animated Bed Array Matrix</h4>
+            <span className="badge bg-light text-dark border">Hover over capsule to view assigned patient</span>
+          </div>
+          <div className="animated-bed-grid mb-4">
+            {beds.map(bed => {
+              const stCls = bed.status === "Occupied" ? "unit-occupied" : bed.status === "Maintenance" ? "unit-maintenance" : "unit-available";
+              return (
+                <div 
+                  key={`anim-${bed.id}`} 
+                  className={`animated-bed-unit ${stCls}`}
+                  onClick={() => {
+                    if (bed.status === "Occupied") {
+                      if (window.confirm(`Clear ${bed.id} occupancy?`)) {
+                        handleBedStatus(bed.numericId, bed.id, "Available");
+                      }
+                    } else {
+                      const nxt = bed.status === "Available" ? "Maintenance" : "Available";
+                      handleBedStatus(bed.numericId, bed.id, nxt);
+                    }
+                  }}
+                >
+                  <div className="bed-unit-header">{bed.id}</div>
+                  <div className="bed-capsule-graphic" />
+                  <div className="bed-unit-footer">{bed.status}</div>
+                  <div className="bed-patient-tooltip">
+                    {bed.status === "Occupied" ? `Assigned: ${bed.patient || "Active Patient"}` : `Status: ${bed.status}`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <h4 className="fs-6 fw-bold mb-3 mt-4">Detailed Allocation Roster</h4>
+          <div className="row">
+            {beds.length === 0 ? (
+              <div className="col-12 text-center text-muted py-4">No beds available.</div>
+            ) : beds.map(bed => (
+              <BedCard key={bed.id} bed={bed} onStatusChange={handleBedStatus} />
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -1,25 +1,11 @@
-import { useState, useEffect } from "react";
-import { addPatient, getDoctors, getBeds, calculateSeverity } from "../services/api";
+import { useState } from "react";
+import { useApp } from "../context/AppContext";
+import { addPatient, calculateSeverity } from "../services/api";
 
 export default function PatientRegistration({ onNavigate, addToast }) {
-  const [doctors, setDoctors] = useState([]);
-  const [beds, setBeds] = useState([]);
+  const { doctors, beds, registerPatient } = useApp();
   const [loading, setLoading] = useState(false);
   const [calcLoading, setCalcLoading] = useState(false);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const docs = await getDoctors();
-        const bds = await getBeds();
-        setDoctors(docs);
-        setBeds(bds);
-      } catch (err) {
-        console.error("Failed to load initial data", err);
-      }
-    }
-    fetchData();
-  }, []);
 
   const availableBeds = beds.filter(b => b.status === "Available");
 
@@ -65,8 +51,16 @@ export default function PatientRegistration({ onNavigate, addToast }) {
         symptoms: form.symptoms || "Unknown"
       };
       
-      const response = await addPatient(newPatData);
-      addToast("Ingest Accepted", `${form.name} (ID: ${response.patient_id}) registered successfully.`, "success");
+      // Update local persistent state immediately to bind assigned doctor and bed
+      const registeredLocally = registerPatient(newPatData);
+
+      try {
+        await addPatient(newPatData);
+      } catch (backendErr) {
+        console.warn("Backend addPatient sync skipped/offline", backendErr);
+      }
+
+      addToast("Ingest Accepted", `${form.name} registered successfully with assigned units.`, "success");
       setForm({ name: "", age: "", gender: "Female", contact: "", department: "Trauma", severity: "Medium", symptoms: "", severity_score: 50, assignedDoctor: "", assignedBed: "" });
       onNavigate("queue");
     } catch (err) {
@@ -125,6 +119,7 @@ export default function PatientRegistration({ onNavigate, addToast }) {
               <h3 className="fs-5 fw-bold text-primary mb-4 pb-2 border-bottom border-primary border-opacity-10 mt-4">
                 <i className="bi bi-clipboard2-pulse me-2" />Clinical Triage Routing
               </h3>
+              <div className="row g-3 mb-4">
                 <div className="col-12 mb-3">
                   <label className="form-label fw-medium">Reported Symptoms *</label>
                   <div className="input-group">

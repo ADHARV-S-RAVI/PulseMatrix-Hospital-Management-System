@@ -37,6 +37,13 @@ export const login = (username, password) => {
   });
 };
 
+export const registerAdmin = (username, password) => {
+  return fetchAPI("/register_admin", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+};
+
 // ── Patients ──────────────────────────────────────────────
 export const getPatients = () => fetchAPI("/patients");
 

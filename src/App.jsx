@@ -40,6 +40,19 @@ function AppShell() {
   const [sidebarOpen, setSidebar]    = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
+  // Dark / Light mode toggle
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("pm_theme");
+    if (saved === "dark") { document.body.classList.add("theme-dark"); return true; }
+    return false;
+  });
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.body.classList.toggle("theme-dark", next);
+    localStorage.setItem("pm_theme", next ? "dark" : "light");
+  };
+
   // Live clock
   const [time, setTime] = useState("");
   useEffect(() => {
@@ -174,6 +187,16 @@ function AppShell() {
               <i className="bi bi-clock-history text-primary" />
               <span>{time}</span>
             </div>
+
+            {/* Dark / Light mode toggle */}
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle theme"
+            >
+              <i className={`bi ${darkMode ? "bi-sun-fill" : "bi-moon-stars-fill"}`} />
+            </button>
 
             <div className="dropdown">
               <div className="user-profile" role="button" data-bs-toggle="dropdown" style={{ cursor: "pointer" }}>
