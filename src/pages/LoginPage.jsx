@@ -120,17 +120,46 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
     try {
       const severityScore = regPatSev === "Critical" ? 90 : regPatSev === "Major" ? 70 : regPatSev === "Moderate" ? 50 : 20;
       
+      // Automatic assignment logic for self-registration
+      const localDoctors = JSON.parse(localStorage.getItem("pm_doctors") || "[]");
+      const localBeds = JSON.parse(localStorage.getItem("pm_beds") || "[]");
+      
+      const availableDoc = localDoctors.find(d => d.status === "Available");
+      const availableBed = localBeds.find(b => b.status === "Available" && b.department === regPatDept);
+
       const newPatData = {
         name: regPatName.trim(),
         age: Number(regPatAge),
         gender: regPatGender,
         department: regPatDept,
         severity_score: severityScore,
-        symptoms: "Triage Entry"
+        symptoms: "Self-Registered",
+        assignedDoctor: availableDoc ? availableDoc.name : null,
+        assignedBed: availableBed ? availableBed.id : null
       };
       
       const response = await addPatient(newPatData);
+      
+      // Update local storage to match the assignment
+      if (availableDoc || availableBed) {
+        const patients = JSON.parse(localStorage.getItem("pm_patients") || "[]");
+        const patientWithId = { ...newPatData, id: `PT-2026-${String(patients.length + 1).padStart(3, "0")}`, admittedDate: new Date().toISOString().split("T")[0], status: "Newly Admitted" };
+        patients.unshift(patientWithId);
+        localStorage.setItem("pm_patients", JSON.stringify(patients));
+
+        if (availableDoc) {
+          availableDoc.currentLoad = (availableDoc.currentLoad || 0) + 1;
+          localStorage.setItem("pm_doctors", JSON.stringify(localDoctors));
+        }
+        if (availableBed) {
+          availableBed.status = "Occupied";
+          availableBed.patient = newPatData.name;
+          localStorage.setItem("pm_beds", JSON.stringify(localBeds));
+        }
+      }
+
       onLogin({ role: "patient", userName: newPatData.name, patientId: response.patient_id });
+
     } catch (err) {
       setError(err.message || "Failed to register patient.");
     } finally {

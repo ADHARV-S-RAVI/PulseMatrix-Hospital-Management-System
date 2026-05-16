@@ -44,11 +44,27 @@ export default function PatientRegistration({ onNavigate, addToast }) {
     }
     setLoading(true);
     try {
+      let finalDoctor = form.assignedDoctor;
+      let finalBed = form.assignedBed;
+
+      // Automatic assignment logic if not selected
+      if (!finalDoctor) {
+        const availableDoc = doctors.find(d => d.status === "Available");
+        if (availableDoc) finalDoctor = availableDoc.name;
+      }
+
+      if (!finalBed) {
+        const availableBed = beds.find(b => b.status === "Available" && b.department === form.department);
+        if (availableBed) finalBed = availableBed.id;
+      }
+
       const newPatData = {
         ...form,
         age: Number(form.age),
         severity_score: form.severity_score,
-        symptoms: form.symptoms || "Unknown"
+        symptoms: form.symptoms || "Unknown",
+        assignedDoctor: finalDoctor,
+        assignedBed: finalBed
       };
       
       // Update local persistent state immediately to bind assigned doctor and bed
@@ -69,6 +85,7 @@ export default function PatientRegistration({ onNavigate, addToast }) {
       setLoading(false);
     }
   };
+
 
 
   const Field = ({ label, children, hint }) => (

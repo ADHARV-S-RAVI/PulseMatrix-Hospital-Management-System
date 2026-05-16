@@ -1,5 +1,6 @@
 // Central app context – provides db state + refresh trigger to all children
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+
 import {
   initDB, getPatients, getDoctors, getBeds, getAdmissions,
   registerPatient, dischargePatient, updatePatient,
@@ -27,7 +28,19 @@ export function AppProvider({ children }) {
   const beds       = getBeds();
   const admissions = getAdmissions();
 
+  // Background sync for real-time updates (especially across tabs/different logic paths)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentPats = JSON.parse(localStorage.getItem("pm_patients") || "[]");
+      if (currentPats.length !== patients.length) {
+        refresh();
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [patients.length, refresh]);
+
   const actions = {
+
     registerPatient: (data) => { registerPatient(data); refresh(); },
     dischargePatient: (id)  => { dischargePatient(id);  refresh(); },
     updatePatient: (id, f)  => { updatePatient(id, f);  refresh(); },

@@ -1,94 +1,195 @@
-import { motion } from "motion/react";
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const AMBULANCES = [
-  { id: "AMB-01", status: "In Transit", eta: "4 mins", x: 20, y: 30, color: "#f43f5e" },
-  { id: "AMB-02", status: "Responding", eta: "9 mins", x: 60, y: 70, color: "#f59e0b" },
-  { id: "AMB-03", status: "Standby", eta: "0 mins", x: 80, y: 15, color: "#10b981" },
+  { id: "AMB-01", status: "In Transit", eta: "4 mins", x: 2, y: 3, color: "#f43f5e" },
+  { id: "AMB-02", status: "Responding", eta: "9 mins", x: 8, y: 1, color: "#f59e0b" },
+  { id: "AMB-03", status: "Standby", eta: "0 mins", x: 5, y: 5, color: "#10b981" },
+  { id: "AMB-04", status: "In Transit", eta: "12 mins", x: 1, y: 7, color: "#0ea5e9" },
+  { id: "AMB-05", status: "Standby", eta: "0 mins", x: 9, y: 8, color: "#6366f1" },
 ];
 
 export default function AmbulanceTracker() {
   const [vehicles, setVehicles] = useState(AMBULANCES);
+  const [activeRadar, setActiveRadar] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setVehicles(prev => prev.map(v => ({
-        ...v,
-        x: v.status === "Standby" ? v.x : v.x + (Math.random() - 0.5) * 2,
-        y: v.status === "Standby" ? v.y : v.y + (Math.random() - 0.5) * 2,
-      })));
+      setVehicles(prev => prev.map(v => {
+        if (v.status === "Standby") return v;
+        const dx = (Math.random() - 0.5) * 0.2;
+        const dy = (Math.random() - 0.5) * 0.2;
+        return {
+          ...v,
+          x: Math.max(0, Math.min(9, v.x + dx)),
+          y: Math.max(0, Math.min(9, v.y + dy)),
+        };
+      }));
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="ambulance-tracker-container" style={{ position: "relative", height: "400px", background: "rgba(15, 23, 42, 0.6)", borderRadius: "16px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-      {/* City Grid Background */}
-      <div style={{ position: "absolute", inset: 0, opacity: 0.1, background: "linear-gradient(rgba(14, 165, 233, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, 0.2) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
-      
-      {/* Scanning Radar Line */}
-      <motion.div
-        animate={{ top: ["-100%", "100%"] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-        style={{ position: "absolute", left: 0, right: 0, height: "100px", background: "linear-gradient(transparent, rgba(14, 165, 233, 0.1), transparent)", zIndex: 1 }}
-      />
-
-      {/* Hospital Node */}
-      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 2 }}>
-        <div className="hospital-node">
-          <div className="pulse-ring" />
-          <i className="bi bi-hospital-fill" style={{ color: "#0ea5e9", fontSize: "2rem" }} />
-        </div>
+    <div className="tracker-root p-3 rounded-4 overflow-hidden position-relative" style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", height: "450px" }}>
+      {/* Background Radar Grid */}
+      <div className="tracker-grid">
+        {Array.from({ length: 100 }).map((_, i) => (
+          <div key={i} className="grid-cell" />
+        ))}
       </div>
 
-      {/* Ambulance Markers */}
+      {/* Radar Scanning Line */}
+      {activeRadar && <div className="radar-sweep" />}
+
+      {/* Center Hospital Marker */}
+      <div className="hospital-node">
+        <i className="bi bi-hospital-fill" />
+        <div className="node-pulse" />
+      </div>
+
+      {/* Ambulance Nodes */}
       {vehicles.map(v => (
         <motion.div
           key={v.id}
-          animate={{ left: `${v.x}%`, top: `${v.y}%` }}
-          style={{ position: "absolute", zIndex: 3, cursor: "pointer" }}
+          className="ambulance-node"
+          initial={false}
+          animate={{ 
+            left: `${(v.x / 10) * 100}%`,
+            top: `${(v.y / 10) * 100}%` 
+          }}
+          transition={{ type: "spring", stiffness: 50, damping: 20 }}
+          style={{ "--node-color": v.color }}
         >
-          <div style={{ position: "relative" }}>
-            <div style={{ width: "12px", height: "12px", background: v.color, borderRadius: "50%", boxShadow: `0 0 15px ${v.color}` }} />
-            <div style={{ position: "absolute", top: "15px", left: "15px", background: "rgba(0,0,0,0.8)", padding: "4px 8px", borderRadius: "4px", fontSize: "0.6rem", whiteSpace: "nowrap", border: `1px solid ${v.color}44` }}>
-              <div style={{ fontWeight: "bold", color: v.color }}>{v.id}</div>
-              <div style={{ color: "#94a3b8" }}>ETA: {v.eta}</div>
-            </div>
+          <div className="node-icon">
+            <i className="bi bi-truck-front-fill" />
           </div>
+          <div className="node-label">
+            <span className="node-id">{v.id}</span>
+            <span className="node-eta">{v.eta}</span>
+          </div>
+          <div className="node-trace" />
         </motion.div>
       ))}
 
-      {/* HUD Info Bar */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.4)", padding: "10px 20px", backdropFilter: "blur(10px)", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.1)", zIndex: 4 }}>
-        <div style={{ fontSize: "0.75rem", color: "#e2e8f0" }}>
-          <i className="bi bi-geo-alt-fill me-2 text-info" />
-          Live Route Optimization Active
+      {/* HUD Info Overlay */}
+      <div className="tracker-hud">
+        <div className="hud-group">
+          <div className="hud-label">Status</div>
+          <div className="hud-value"><span className="status-dot-green" /> Telemetry Active</div>
         </div>
-        <div style={{ display: "flex", gap: "15px" }}>
-          <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}><span style={{ color: "#10b981" }}>●</span> 3 Ready</span>
-          <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}><span style={{ color: "#f43f5e" }}>●</span> 2 Active</span>
+        <div className="hud-group">
+          <div className="hud-label">Active Units</div>
+          <div className="hud-value">{vehicles.length}</div>
+        </div>
+        <div className="hud-group">
+          <div className="hud-label">Coordinate System</div>
+          <div className="hud-value text-uppercase">Sector 7-G / Matrix</div>
         </div>
       </div>
 
       <style>{`
-        .hospital-node {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .tracker-root {
+          box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+          user-select: none;
         }
-        .pulse-ring {
+        .tracker-grid {
           position: absolute;
-          width: 60px;
-          height: 60px;
-          border: 2px solid #0ea5e9;
+          inset: 0;
+          display: grid;
+          grid-template-columns: repeat(10, 1fr);
+          grid-template-rows: repeat(10, 1fr);
+          opacity: 0.1;
+        }
+        .grid-cell {
+          border: 1px solid #0ea5e9;
+        }
+        .radar-sweep {
+          position: absolute;
+          width: 200%;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+          top: 0; left: -50%;
+          animation: radarSweep 4s linear infinite;
+          opacity: 0.3;
+          z-index: 1;
+        }
+        @keyframes radarSweep {
+          0% { top: 0; }
+          100% { top: 100%; }
+        }
+        .hospital-node {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          color: #fff;
+          font-size: 1.5rem;
+          z-index: 5;
+          text-shadow: 0 0 10px #0ea5e9;
+        }
+        .node-pulse {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 40px; height: 40px;
+          background: rgba(14, 165, 233, 0.2);
           border-radius: 50%;
-          animation: map-pulse 2s infinite;
+          transform: translate(-50%, -50%);
+          animation: pulseMarker 2s infinite;
         }
-        @keyframes map-pulse {
-          0% { transform: scale(0.5); opacity: 1; }
-          100% { transform: scale(2); opacity: 0; }
+        @keyframes pulseMarker {
+          0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
+          100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
         }
+        .ambulance-node {
+          position: absolute;
+          z-index: 4;
+          cursor: pointer;
+        }
+        .node-icon {
+          width: 28px; height: 28px;
+          background: var(--node-color);
+          border-radius: 6px;
+          display: flex; align-items: center; justify-content: center;
+          color: #fff; font-size: 0.9rem;
+          box-shadow: 0 0 15px var(--node-color);
+          border: 2px solid rgba(255,255,255,0.4);
+        }
+        .node-label {
+          position: absolute;
+          left: 36px; top: 0;
+          background: rgba(15, 23, 42, 0.9);
+          backdrop-filter: blur(4px);
+          padding: 2px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(255,255,255,0.1);
+          white-space: nowrap;
+          display: flex; flex-direction: column;
+        }
+        .node-id { font-size: 0.7rem; font-weight: 700; color: #fff; }
+        .node-eta { font-size: 0.65rem; color: #94a3b8; }
+        .node-trace {
+          position: absolute;
+          top: 14px; left: 14px;
+          width: 4px; height: 4px;
+          background: var(--node-color);
+          border-radius: 50%;
+          opacity: 0.5;
+          box-shadow: 0 0 10px var(--node-color);
+        }
+        .tracker-hud {
+          position: absolute;
+          bottom: 15px; left: 15px; right: 15px;
+          display: flex; gap: 20px;
+          background: rgba(255,255,255,0.05);
+          backdrop-filter: blur(10px);
+          padding: 10px 15px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.1);
+          z-index: 10;
+        }
+        .hud-group { display: flex; flex-direction: column; gap: 2px; }
+        .hud-label { font-size: 0.6rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; }
+        .hud-value { font-size: 0.75rem; color: #f1f5f9; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .status-dot-green { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 5px #10b981; }
       `}</style>
     </div>
   );

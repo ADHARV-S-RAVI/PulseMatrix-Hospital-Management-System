@@ -1258,20 +1258,28 @@ body.theme-dark {
   background: #090d16;
   color: #f1f5f9;
 }
-
+body.theme-dark h1, 
+body.theme-dark h2, 
+body.theme-dark h3, 
+body.theme-dark h4, 
+body.theme-dark h5, 
+body.theme-dark h6 { 
+  color: #fff !important; 
+}
 body.theme-dark .glass-panel {
   background: rgba(15, 23, 42, 0.75);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   color: #f1f5f9;
 }
-
 body.theme-dark .top-header {
   background: rgba(15, 23, 42, 0.85);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-body.theme-dark .text-dark { color: #f8fafc !important; }
+body.theme-dark .bg-light { background-color: rgba(255,255,255,0.05) !important; color: #f1f5f9 !important; }
+body.theme-dark .btn-light { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); color: #fff; }
+
 body.theme-dark .premium-table th { background: rgba(255, 255, 255, 0.03); color: #cbd5e1; border-color: rgba(255, 255, 255, 0.06); }
 body.theme-dark .premium-table td { border-color: rgba(255, 255, 255, 0.04); color: #e2e8f0; }
 body.theme-dark .premium-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
@@ -1301,6 +1309,18 @@ body.theme-dark .form-select:focus {
   color: #fff;
 }
 body.theme-dark .form-label { color: #cbd5e1; }
+body.theme-dark .user-name { color: #f8fafc; }
+body.theme-dark .user-role { color: #94a3b8; }
+body.theme-dark .text-muted { color: #94a3b8 !important; }
+body.theme-dark .header-time { background: rgba(255,255,255,0.05); color: #cbd5e1; }
+body.theme-dark .premium-table th { background: rgba(255,255,255,0.04) !important; color: #fff !important; }
+body.theme-dark .pat-info-item { background: rgba(255,255,255,0.03); }
+body.theme-dark .pat-info-value { color: #f1f5f9; }
+body.theme-dark .pat-notices-list li { background: rgba(255,255,255,0.02); color: #cbd5e1; }
+body.theme-dark .pat-vital-card { background: rgba(15, 23, 42, 0.8); border-top-color: #334155; }
+body.theme-dark .pat-vital-value { color: #fff; }
+body.theme-dark .sidebar { border-right: 1px solid rgba(255,255,255,0.05); }
+
 
 .theme-toggle-btn {
   width: 44px; height: 44px;

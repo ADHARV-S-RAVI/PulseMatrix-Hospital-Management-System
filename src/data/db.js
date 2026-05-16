@@ -72,25 +72,49 @@ export const getAdmissions= () => JSON.parse(localStorage.getItem("pm_admissions
 // ── Mutators ───────────────────────────────────────────────
 export function registerPatient(data) {
   const patients = getPatients();
+  const doctors = getDoctors();
+  const beds = getBeds();
+  
+  // Automatic assignment logic
+  let assignedDoctor = data.assignedDoctor;
+  let assignedBed = data.assignedBed;
+
+  if (!assignedDoctor) {
+    const availableDoc = doctors.find(d => d.status === "Available");
+    if (availableDoc) assignedDoctor = availableDoc.name;
+  }
+
+  if (!assignedBed) {
+    const availableBed = beds.find(b => b.status === "Available" && (data.department ? b.department === data.department : true));
+    if (availableBed) assignedBed = availableBed.id;
+  }
+
   const newId = `PT-2026-${String(patients.length + 1).padStart(3, "0")}`;
   const today = new Date().toISOString().split("T")[0];
-  const patient = { id: newId, ...data, admittedDate: today, admittedTime: now12h(), status: "Newly Admitted" };
+  const patient = { 
+    id: newId, 
+    ...data, 
+    assignedDoctor,
+    assignedBed,
+    admittedDate: today, 
+    admittedTime: now12h(), 
+    status: "Newly Admitted" 
+  };
 
   patients.unshift(patient);
   localStorage.setItem("pm_patients", JSON.stringify(patients));
 
   if (patient.assignedBed) {
-    const beds = getBeds();
     const bed = beds.find(b => b.id === patient.assignedBed);
     if (bed) { bed.status = "Occupied"; bed.patient = patient.name; }
     localStorage.setItem("pm_beds", JSON.stringify(beds));
   }
   if (patient.assignedDoctor) {
-    const docs = getDoctors();
-    const doc = docs.find(d => d.name === patient.assignedDoctor);
+    const doc = doctors.find(d => d.name === patient.assignedDoctor);
     if (doc) doc.currentLoad = (doc.currentLoad || 0) + 1;
-    localStorage.setItem("pm_doctors", JSON.stringify(docs));
+    localStorage.setItem("pm_doctors", JSON.stringify(doctors));
   }
+
 
   const adm = getAdmissions();
   adm["May 13"] = (adm["May 13"] || 0) + 1;

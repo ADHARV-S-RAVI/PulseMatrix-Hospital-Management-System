@@ -72,13 +72,23 @@ function useChart(canvasRef, config, depKey) {
 }
 
 /* ── Shared style constants ───────────────────────────────── */
-const FONT = { family: "Outfit, sans-serif", size: 12, weight: "600" };
-const GRID = { color: "rgba(226,232,240,0.4)" };
+const isDark = () => document.body.classList.contains("theme-dark");
+const getTextColor = () => isDark() ? "#cbd5e1" : "#1e293b";
+const getGridColor = () => isDark() ? "rgba(255,255,255,0.08)" : "rgba(226,232,240,0.4)";
+
+const FONT = (color) => ({ 
+  family: "Outfit, sans-serif", 
+  size: 12, 
+  weight: "600",
+  color: color || getTextColor()
+});
+const GRID = () => ({ color: getGridColor() });
 const ANIM = {
   duration: 2000,
   easing: "easeOutElastic",
   delay: (context) => context.dataIndex * 150, // Staggered bars/points
 };
+
 
 /* ─────────────────────────────────────────────────────────── */
 /* 1. Severity Pie Chart                                        */
@@ -111,8 +121,16 @@ export function SeverityChart({ labels: propLabels, data: propData }) {
       maintainAspectRatio: false,
       animation: ANIM,
       plugins: {
-        legend: { position: "right", labels: { font: FONT, boxWidth: 12 } },
+        legend: { 
+          position: "right", 
+          labels: { 
+            font: { family: "Outfit, sans-serif", size: 12, weight: "600" }, 
+            color: getTextColor(),
+            boxWidth: 12 
+          } 
+        },
       },
+
     },
   }, depKey);
 
@@ -152,9 +170,17 @@ export function DepartmentChart({ labels: propLabels, data: propData }) {
       animation: ANIM,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: "Inter" } }, grid: GRID },
-        x: { ticks: { font: { family: "Inter", weight: "500" } }, grid: { display: false } },
+        y: { 
+          beginAtZero: true, 
+          ticks: { stepSize: 1, color: getTextColor(), font: { family: "Inter" } }, 
+          grid: GRID() 
+        },
+        x: { 
+          ticks: { color: getTextColor(), font: { family: "Inter", weight: "500" } }, 
+          grid: { display: false } 
+        },
       },
+
     },
   }, depKey);
 
@@ -195,9 +221,17 @@ export function AdmissionsChart({ labels: propLabels, data: propData }) {
       animation: ANIM,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, grid: GRID, ticks: { font: { family: "Inter" } } },
-        x: { grid: { display: false }, ticks: { font: { family: "Inter" } } },
+        y: { 
+          beginAtZero: true, 
+          grid: GRID(), 
+          ticks: { color: getTextColor(), font: { family: "Inter" } } 
+        },
+        x: { 
+          grid: { display: false }, 
+          ticks: { color: getTextColor(), font: { family: "Inter" } } 
+        },
       },
+
     },
   }, depKey);
 
@@ -235,9 +269,15 @@ export function BedOccupancyChart() {
       plugins: {
         legend: {
           position: "bottom",
-          labels: { font: FONT, padding: 15, boxWidth: 12 },
+          labels: { 
+            font: { family: "Outfit, sans-serif", size: 12, weight: "600" }, 
+            color: getTextColor(),
+            padding: 15, 
+            boxWidth: 12 
+          },
         },
       },
+
     },
   }, depKey);
 

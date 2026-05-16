@@ -17,13 +17,13 @@ function DoctorCard({ doc, onStatusChange }) {
       <div className="doctor-card h-100">
         <div className="doctor-avatar">{initials}</div>
         <div className="flex-grow-1 overflow-hidden">
-          <div className="fw-bold text-dark text-truncate">{doc.name}</div>
+          <div className="fw-bold text-truncate">{doc.name}</div>
           <div className="text-muted small">{doc.specialty}</div>
           <div className="d-flex justify-content-between align-items-center mt-2 pt-1 border-top">
             <span className={`small fw-semibold ${statusCls}`}>
               <i className="bi bi-circle-fill me-1" style={{ fontSize: "0.55rem" }} />{doc.status}
             </span>
-            <span className="badge bg-light text-dark border" title="Patient load">
+            <span className="badge bg-light border" title="Patient load">
               <i className="bi bi-people-fill me-1 text-primary" />{doc.currentLoad || 0}
             </span>
           </div>
@@ -59,7 +59,7 @@ function BedCard({ bed, onStatusChange }) {
       <div className={`bed-card h-100 ${borderCls}`}>
         <div className="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <span className="fs-6 fw-bold text-dark">{bed.id}</span>
+            <span className="fs-6 fw-bold">{bed.id}</span>
             <div className="text-muted" style={{ fontSize: "0.75rem" }}>{bed.department || "General"}</div>
           </div>
           {badgeEl}
@@ -135,7 +135,7 @@ export default function ManagementUI({ addToast }) {
   return (
     <div>
       <div className="mb-4 pb-2 border-bottom">
-        <h2 className="fw-bold text-dark mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Personnel &amp; Clinical Unit Management</h2>
+        <h2 className="fw-bold mb-1" style={{ fontFamily: "Outfit, sans-serif" }}>Personnel &amp; Clinical Unit Management</h2>
         <p className="text-muted small mb-0">Real-time staff schedule oversight and bed hardware readiness.</p>
       </div>
 
@@ -169,7 +169,7 @@ export default function ManagementUI({ addToast }) {
         <div>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="fs-6 fw-bold mb-0 text-primary"><i className="bi bi-display me-2"/>Animated Bed Array Matrix</h4>
-            <span className="badge bg-light text-dark border">Hover over capsule to view assigned patient</span>
+            <span className="badge bg-light border">Hover over capsule to view assigned patient</span>
           </div>
           <div className="animated-bed-grid mb-4">
             {beds.map(bed => {
