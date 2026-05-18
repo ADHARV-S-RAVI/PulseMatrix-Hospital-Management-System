@@ -80,12 +80,14 @@ export function registerPatient(data) {
   let assignedBed = data.assignedBed;
 
   if (!assignedDoctor) {
-    const availableDoc = doctors.find(d => d.status === "Available");
+    let availableDoc = doctors.find(d => d.status === "Available" && (data.department ? d.specialty === data.department : true));
+    if (!availableDoc) availableDoc = doctors.find(d => d.status === "Available");
     if (availableDoc) assignedDoctor = availableDoc.name;
   }
 
   if (!assignedBed) {
-    const availableBed = beds.find(b => b.status === "Available" && (data.department ? b.department === data.department : true));
+    let availableBed = beds.find(b => b.status === "Available" && (data.department ? b.department === data.department : true));
+    if (!availableBed) availableBed = beds.find(b => b.status === "Available");
     if (availableBed) assignedBed = availableBed.id;
   }
 

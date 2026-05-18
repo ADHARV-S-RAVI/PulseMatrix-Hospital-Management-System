@@ -3,6 +3,29 @@ import { getPatient } from "../services/api";
 import { motion, AnimatePresence } from "motion/react";
 import MedicalHeart3D from "../components/MedicalHeart3D";
 import BioMatrixBackground from "../components/BioMatrixBackground";
+import { PatientVitalsChart, OxygenChart, PainLevelChart } from "../components/Charts";
+
+function AnimatedCounter({ value, color }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const num = parseFloat(value);
+    if(isNaN(num)) { setCount(value); return; }
+    const duration = 1500;
+    const increment = num / (duration / 16);
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= num) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.ceil(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <motion.span style={{ color, textShadow: `0 0 10px ${color}` }}>{count}</motion.span>;
+}
 
 const SEV_CLS = {
   Critical: "severity-critical",
@@ -95,12 +118,12 @@ function VitalCard({ icon, label, value, unit, color, alert }) {
       <ECGWave color={color} />
       <div className="vital-card-content">
         <div className="vital-header">
-          <i className={`bi ${icon}`} style={{ color }} />
+          <i className={`bi ${icon}`} style={{ color, textShadow: `0 0 10px ${color}` }} />
           <span>{label}</span>
         </div>
         <div className="vital-body">
-          <span className="vital-value">{value}</span>
-          <span className="vital-unit">{unit}</span>
+          <span className="vital-value"><AnimatedCounter value={value} color={color} /></span>
+          <span className="vital-unit" style={{ color: "rgba(255,255,255,0.5)" }}>{unit}</span>
         </div>
         {alert && (
           <div className="vital-alert-tag" style={{ color }}>
@@ -144,7 +167,7 @@ export default function PatientDashboard({ patientId, onLogout }) {
         
         setPatient({
           ...data,
-          id: `PT-${data.patient_id}`,
+          id: localData?.id || `PT-2026-${String(data.patient_id || 1).padStart(3, '0')}`,
           severity: localData?.severity || severity,
           status: localData?.status || "In Treatment",
           assignedDoctor: localData?.assignedDoctor || null,
@@ -244,15 +267,25 @@ export default function PatientDashboard({ patientId, onLogout }) {
           <div className="col-lg-8">
             
             {/* Vitals HUD */}
-            <motion.div className="glass-panel p-4 mb-4 hud-card" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
+            <motion.div 
+              className="glass-panel p-4 mb-4 hud-card" 
+              initial={{ opacity: 0, x: -30 }} 
+              animate={{ opacity: 1, x: 0, boxShadow: `0 0 30px ${themeColor}22` }}
+              transition={{ boxShadow: { repeat: Infinity, duration: 3, ease: "easeInOut" } }}
+            >
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h3 className="hud-card-title"><i className="bi bi-activity me-2" />Biometric Stream</h3>
-                <div className="hud-telemetry-tag">LIVE TELEMETRY</div>
+                <div className="hud-telemetry-tag" style={{ borderColor: themeColor, color: themeColor }}>LIVE TELEMETRY</div>
               </div>
-              <div className="row g-3">
+              <div className="row g-3 mb-4">
                 <div className="col-md-4"><VitalCard icon="bi-heart-fill" label="Heart Rate" value={vitals.hr} unit="BPM" color="#f43f5e" alert={vitals.hr > 110 ? "Elevated" : null} /></div>
                 <div className="col-md-4"><VitalCard icon="bi-speedometer2" label="Blood Pressure" value={vitals.bp} unit="mmHg" color="#0ea5e9" /></div>
                 <div className="col-md-4"><VitalCard icon="bi-lungs" label="SpO2" value={vitals.spo2} unit="%" color="#10b981" /></div>
+              </div>
+              
+              <div className="vital-chart-container" style={{ height: 260, position: "relative" }}>
+                 <div style={{ position: "absolute", top: 10, left: 10, zIndex: 10, fontSize: "0.65rem", fontWeight: "bold", color: themeColor, letterSpacing: 1 }}>VITALS TREND (8H)</div>
+                 <PatientVitalsChart color={themeColor} />
               </div>
             </motion.div>
 
@@ -262,7 +295,7 @@ export default function PatientDashboard({ patientId, onLogout }) {
                 <motion.div className="glass-panel p-4 h-100 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
                   <h3 className="hud-card-title mb-4"><i className="bi bi-capsule me-2" />Digital Pillbox</h3>
                   <div className="hud-med-list">
-                    {MEDS.map(m => (
+                    {(patient.meds || MEDS).map(m => (
                       <div key={m.name} className="hud-med-item">
                         <div>
                           <div className="fw-bold small">{m.name}</div>
@@ -292,6 +325,119 @@ export default function PatientDashboard({ patientId, onLogout }) {
                 </motion.div>
               </div>
             </div>
+
+            {/* ── LAB RESULTS (DYNAMIC FROM BACKEND) ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-4"><i className="bi bi-file-medical me-2" />Diagnostics & Lab Results</h3>
+              <div className="row g-3">
+                {(patient.diagnostics || []).map((diag, idx) => (
+                  <div className="col-md-6" key={diag.name}>
+                    <div className="p-3 rounded h-100" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", transition: "all 0.3s" }} onMouseOver={e => e.currentTarget.style.borderColor=diag.color} onMouseOut={e => e.currentTarget.style.borderColor="rgba(255,255,255,0.05)"}>
+                      <div className="d-flex justify-content-between mb-2">
+                        <span className="fw-bold" style={{ color: diag.color, textShadow: `0 0 5px ${diag.color}` }}><i className={`bi ${idx === 0 ? "bi-droplet-fill" : "bi-upc-scan"} me-2`} />{diag.name}</span>
+                        <span className="badge x-small" style={{ background: diag.color, boxShadow: `0 0 10px ${diag.color}66` }}>{diag.status}</span>
+                      </div>
+                      <div className="x-small text-muted lh-lg mt-2">
+                        {diag.status === "ANALYZING" ? (
+                          <div>
+                            <div className="d-flex justify-content-between mb-1"><span>AI Processing</span><span>68%</span></div>
+                            <div className="progress mb-2" style={{ height: 3, background: "rgba(255,255,255,0.1)" }}>
+                              <div className="progress-bar bg-warning progress-bar-striped progress-bar-animated" style={{ width: "68%" }} />
+                            </div>
+                            <div style={{ fontSize: '0.6rem' }}>{diag.details}</div>
+                          </div>
+                        ) : (
+                          <div style={{ whiteSpace: "pre-line" }}>{diag.details}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* ── NEW FEATURES: Neural & Fluids ── */}
+            <div className="row g-4 mt-1">
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-activity me-2" />Neural Link Activity</h3>
+                  <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Alpha Wave Frequency</span><span className="text-info fw-bold" style={{ textShadow: "0 0 5px #0ea5e9" }}>9.5 Hz</span></div>
+                  <div className="ecg-container" style={{ height: 30, background: "rgba(14,165,233,0.1)", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+                    <svg viewBox="0 0 100 20" preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+                      <motion.path d="M0 10 Q 5 0, 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10" fill="none" stroke="#0ea5e9" strokeWidth="1" animate={{ x: [0, -50] }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} />
+                    </svg>
+                  </div>
+                  <div className="x-small text-muted mt-2">Cognitive state: <span className="text-success">Resting</span></div>
+                </motion.div>
+              </div>
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-funnel-fill me-2" />IV Nanobot Infusion</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Flow Rate</span><span className="text-primary fw-bold">125 mL/hr</span></div>
+                  <div className="progress mb-3" style={{ height: 4, background: "rgba(255,255,255,0.05)" }}>
+                    <div className="progress-bar bg-primary progress-bar-striped progress-bar-animated" style={{ width: "100%" }} />
+                  </div>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Cellular Repair Nanobots</span><span className="text-warning fw-bold" style={{ animation: "blink 1.5s infinite" }}>ACTIVE</span></div>
+                  <div className="x-small text-muted" style={{ fontSize: "0.6rem" }}>Swarm density: 4.2M units/dL</div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* ── NEW OPERATION: Pain Management Protocol ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-4"><i className="bi bi-bandaid me-2" />Pain Management Protocol</h3>
+              <div className="vital-chart-container" style={{ height: 200, position: "relative" }}>
+                 <PainLevelChart color="#f59e0b" />
+              </div>
+            </motion.div>
+
+            {/* ── NEW OPERATION: Oxygen Saturation History ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-4"><i className="bi bi-lungs-fill me-2" />Respiratory & Oxygen Telemetry</h3>
+              <div className="vital-chart-container" style={{ height: 200, position: "relative" }}>
+                 <OxygenChart color="#10b981" />
+              </div>
+            </motion.div>
+
+            {/* ── 4 MORE OPERATIONS (Fluid, Blood Gas, Dialysis, Central Line) ── */}
+            <div className="row g-4 mt-1">
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-droplet-half me-2" />Fluid Balance</h3>
+                  <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Intake (24h)</span><span className="text-info fw-bold">2450 mL</span></div>
+                  <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Output (24h)</span><span className="text-warning fw-bold">2100 mL</span></div>
+                  <div className="progress" style={{ height: 4, background: "rgba(255,255,255,0.05)" }}>
+                    <div className="progress-bar bg-info" style={{ width: "55%" }} />
+                    <div className="progress-bar bg-warning" style={{ width: "45%" }} />
+                  </div>
+                </motion.div>
+              </div>
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-lungs me-2" />Blood Gas Analyzer</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">pH Level</span><span className="text-success fw-bold">7.38</span></div>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">pCO2</span><span className="text-white">42 mmHg</span></div>
+                  <div className="d-flex justify-content-between x-small"><span className="text-muted">pO2</span><span className="text-info">95 mmHg</span></div>
+                </motion.div>
+              </div>
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-funnel me-2" />Dialysis Filter Load</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Filter Saturation</span><span className="text-warning fw-bold">74%</span></div>
+                  <div className="progress mb-2" style={{ height: 4, background: "rgba(255,255,255,0.05)" }}>
+                    <div className="progress-bar bg-warning progress-bar-striped" style={{ width: "74%" }} />
+                  </div>
+                </motion.div>
+              </div>
+              <div className="col-md-6">
+                <motion.div className="glass-panel p-3 hud-card h-100" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                  <h3 className="hud-card-title mb-3"><i className="bi bi-usb-symbol me-2" />Central Line Status</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Insertion Site</span><span className="text-success">Clean</span></div>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Patency</span><span className="text-success fw-bold">Optimal</span></div>
+                </motion.div>
+              </div>
+            </div>
+
           </div>
 
           {/* ── Right Column: Resources ── */}
@@ -321,6 +467,98 @@ export default function PatientDashboard({ patientId, onLogout }) {
                 ))}
               </div>
             </motion.div>
+
+            {/* ── AI PROGNOSIS (DYNAMIC FROM BACKEND) ── */}
+            {patient.prognosis && (
+              <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+                <h3 className="hud-card-title mb-3"><i className="bi bi-cpu me-2" />AI Health Prognosis</h3>
+                <div className="d-flex flex-column gap-3">
+                  <div>
+                    <div className="d-flex justify-content-between x-small fw-bold mb-1">
+                      <span className="text-muted">Recovery Probability</span>
+                      <span className="text-success" style={{ textShadow: "0 0 5px rgba(16,185,129,0.5)" }}><AnimatedCounter value={patient.prognosis.recovery_probability} color="#10b981" />%</span>
+                    </div>
+                    <div className="progress" style={{ height: 4, background: "rgba(255,255,255,0.05)", overflow: 'visible' }}>
+                      <div className="progress-bar bg-success" style={{ width: `${patient.prognosis.recovery_probability}%`, boxShadow: "0 0 10px #10b981", position: 'relative' }}>
+                         <div style={{ position: "absolute", right: 0, top: -2, width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: `0 0 10px #10b981` }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="d-flex justify-content-between x-small fw-bold mb-1">
+                      <span className="text-muted">Deterioration Risk</span>
+                      <span className="text-danger" style={{ textShadow: "0 0 5px rgba(244,63,94,0.5)" }}><AnimatedCounter value={patient.prognosis.deterioration_risk} color="#f43f5e" />%</span>
+                    </div>
+                    <div className="progress" style={{ height: 4, background: "rgba(255,255,255,0.05)", overflow: 'visible' }}>
+                      <div className="progress-bar bg-danger" style={{ width: `${patient.prognosis.deterioration_risk}%`, boxShadow: "0 0 10px #f43f5e", position: 'relative' }}>
+                         <div style={{ position: "absolute", right: 0, top: -2, width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: `0 0 10px #f43f5e` }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 p-2 rounded text-center" style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.3)", boxShadow: "inset 0 0 15px rgba(14,165,233,0.1)" }}>
+                    <div className="x-small text-info fw-bold mb-1">PREDICTED DISCHARGE</div>
+                    <div className="fw-bold fs-5 text-white" style={{ textShadow: "0 0 10px rgba(255,255,255,0.5)" }}>{patient.prognosis.estimated_discharge_hours} HOURS</div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── NEW FEATURES: Telemetry, Atmosphere, Security ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-tv me-2" />Smart Bed Telemetry</h3>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Incline Angle</span><span className="text-white">35°</span></div>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Weight Distribution</span><span className="text-success" style={{ textShadow: "0 0 5px #10b981" }}>Optimal</span></div>
+              <div className="progress" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}>
+                <div className="progress-bar bg-success" style={{ width: "50%", margin: "0 auto" }} />
+              </div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-cloud-haze2 me-2" />Atmospheric Canopy</h3>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">O2 Concentration</span><span className="text-info fw-bold">28%</span></div>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Core Temperature</span><span className="text-white">22.5°C</span></div>
+              <div className="d-flex justify-content-between x-small"><span className="text-muted">Air Humidity</span><span className="text-white">45%</span></div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-fingerprint me-2" />Bio-Auth Clearance</h3>
+              <div className="d-flex align-items-center gap-2 mb-2 p-2 rounded" style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <i className="bi bi-shield-check text-success" />
+                <div className="x-small">
+                  <div className="text-success fw-bold">Level 1 Clearance</div>
+                  <div className="text-muted" style={{ fontSize: "0.6rem" }}>Next of Kin Verified</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* ── 4 MORE OPERATIONS (Defibrillator, Surgery Link, Microbiome, Organ Index) ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-lightning-charge me-2" />Automated Defibrillator</h3>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Capacitor Status</span><span className="text-success fw-bold" style={{ animation: "blink 2s infinite" }}>CHARGED</span></div>
+              <div className="d-flex justify-content-between x-small"><span className="text-muted">Energy Select</span><span className="text-white">200 Joules</span></div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-hdd-network me-2" />Remote Surgery Link</h3>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Latency</span><span className="text-success">12ms</span></div>
+              <div className="d-flex justify-content-between x-small"><span className="text-muted">Control Status</span><span className="text-secondary fw-bold">STANDBY</span></div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-virus me-2" />Microbiome Sequencing</h3>
+              <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Processing</span><span className="text-info fw-bold">88%</span></div>
+              <div className="progress" style={{ height: 3, background: "rgba(255,255,255,0.05)" }}>
+                <div className="progress-bar bg-info progress-bar-striped progress-bar-animated" style={{ width: "88%" }} />
+              </div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+              <h3 className="hud-card-title mb-3"><i className="bi bi-heart-pulse me-2" />Organ Viability Index</h3>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Hepatic</span><span className="text-success">96%</span></div>
+              <div className="d-flex justify-content-between x-small mb-2"><span className="text-muted">Renal</span><span className="text-success">92%</span></div>
+              <div className="d-flex justify-content-between x-small"><span className="text-muted">Cardiac</span><span className="text-info fw-bold">89%</span></div>
+            </motion.div>
+
           </div>
         </div>
       </div>
@@ -380,6 +618,7 @@ export default function PatientDashboard({ patientId, onLogout }) {
         .orbit-ring { position: absolute; inset: 0; border: 2px solid #0ea5e9; border-top-color: transparent; border-radius: 50%; animation: rotate 1s linear infinite; }
         .orbit-text { font-size: 0.6rem; font-weight: 800; letter-spacing: 2px; color: #0ea5e9; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );

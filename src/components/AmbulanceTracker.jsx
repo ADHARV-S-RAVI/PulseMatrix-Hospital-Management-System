@@ -11,40 +11,58 @@ const AMBULANCES = [
 
 export default function AmbulanceTracker() {
   const [vehicles, setVehicles] = useState(AMBULANCES);
-  const [activeRadar, setActiveRadar] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setVehicles(prev => prev.map(v => {
         if (v.status === "Standby") return v;
-        const dx = (Math.random() - 0.5) * 0.2;
-        const dy = (Math.random() - 0.5) * 0.2;
+        const dx = (Math.random() - 0.5) * 0.4;
+        const dy = (Math.random() - 0.5) * 0.4;
         return {
           ...v,
           x: Math.max(0, Math.min(9, v.x + dx)),
           y: Math.max(0, Math.min(9, v.y + dy)),
         };
       }));
-    }, 2000);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="tracker-root p-3 rounded-4 overflow-hidden position-relative" style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", height: "450px" }}>
-      {/* Background Radar Grid */}
+    <div className="tracker-root p-3 rounded-4 overflow-hidden position-relative" style={{ background: "#050b14", border: "1px solid rgba(255,255,255,0.05)", height: "450px" }}>
+      {/* ── Clean Minimal Grid ── */}
       <div className="tracker-grid">
         {Array.from({ length: 100 }).map((_, i) => (
           <div key={i} className="grid-cell" />
         ))}
       </div>
 
-      {/* Radar Scanning Line */}
-      {activeRadar && <div className="radar-sweep" />}
+      {/* ── Clean Internal Sweep ── */}
+      <div className="radar-sweep" />
 
-      {/* Center Hospital Marker */}
+      {/* ── Clean Routing Lines ── */}
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 2 }}>
+        {vehicles.filter(v => v.status !== "Standby").map(v => (
+          <motion.line 
+            key={`beam-${v.id}`}
+            x1="50%" y1="50%"
+            x2={`${(v.x / 10) * 100}%`} y2={`${(v.y / 10) * 100}%`}
+            stroke={v.color}
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
+            initial={{ strokeDashoffset: 0 }}
+            animate={{ strokeDashoffset: -100 }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+            style={{ opacity: 0.4 }}
+          />
+        ))}
+      </svg>
+
+      {/* Center Hospital Node */}
       <div className="hospital-node">
-        <i className="bi bi-hospital-fill" />
-        <div className="node-pulse" />
+        <div className="hospital-bg" />
+        <i className="bi bi-hospital-fill hospital-icon" />
+        <motion.div className="node-pulse" animate={{ scale: [1, 2], opacity: [0.5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }} />
       </div>
 
       {/* Ambulance Nodes */}
@@ -53,143 +71,107 @@ export default function AmbulanceTracker() {
           key={v.id}
           className="ambulance-node"
           initial={false}
-          animate={{ 
-            left: `${(v.x / 10) * 100}%`,
-            top: `${(v.y / 10) * 100}%` 
-          }}
+          animate={{ left: `${(v.x / 10) * 100}%`, top: `${(v.y / 10) * 100}%` }}
           transition={{ type: "spring", stiffness: 50, damping: 20 }}
           style={{ "--node-color": v.color }}
         >
+          {v.status !== "Standby" && (
+            <motion.div className="amb-pulse" animate={{ scale: [1, 1.8], opacity: [0.4, 0] }} transition={{ duration: 1.5, repeat: Infinity }} style={{ backgroundColor: v.color }} />
+          )}
+
           <div className="node-icon">
-            <i className="bi bi-truck-front-fill" />
+            <i className="bi bi-car-front-fill" />
           </div>
+          
           <div className="node-label">
             <span className="node-id">{v.id}</span>
             <span className="node-eta">{v.eta}</span>
           </div>
-          <div className="node-trace" />
         </motion.div>
       ))}
 
       {/* HUD Info Overlay */}
-      <div className="tracker-hud">
+      <motion.div className="tracker-hud glass-panel" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
         <div className="hud-group">
-          <div className="hud-label">Status</div>
-          <div className="hud-value"><span className="status-dot-green" /> Telemetry Active</div>
+          <div className="hud-label text-muted">Routing Status</div>
+          <div className="hud-value"><span className="status-dot-green" /> ACTIVE</div>
         </div>
         <div className="hud-group">
-          <div className="hud-label">Active Units</div>
+          <div className="hud-label text-muted">Deployed Units</div>
           <div className="hud-value">{vehicles.length}</div>
         </div>
-        <div className="hud-group">
-          <div className="hud-label">Coordinate System</div>
-          <div className="hud-value text-uppercase">Sector 7-G / Matrix</div>
-        </div>
-      </div>
+      </motion.div>
 
       <style>{`
-        .tracker-root {
-          box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
-          user-select: none;
-        }
+        .tracker-root { box-shadow: inset 0 0 30px rgba(0,0,0,0.5); user-select: none; }
         .tracker-grid {
-          position: absolute;
-          inset: 0;
-          display: grid;
-          grid-template-columns: repeat(10, 1fr);
-          grid-template-rows: repeat(10, 1fr);
-          opacity: 0.1;
+          position: absolute; inset: 0;
+          display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr);
+          opacity: 0.1; z-index: 0;
         }
-        .grid-cell {
-          border: 1px solid #0ea5e9;
-        }
+        .grid-cell { border: 1px solid #0ea5e9; }
+        
+        /* Smooth Internal Radar Sweep */
         .radar-sweep {
-          position: absolute;
-          width: 200%;
-          height: 2px;
+          position: absolute; width: 100%; height: 2px;
           background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
-          top: 0; left: -50%;
+          top: 0; left: 0; opacity: 0.2; z-index: 1; pointer-events: none;
           animation: radarSweep 4s linear infinite;
-          opacity: 0.3;
-          z-index: 1;
         }
-        @keyframes radarSweep {
-          0% { top: 0; }
-          100% { top: 100%; }
-        }
+        @keyframes radarSweep { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* Hospital Node */
         .hospital-node {
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          color: #fff;
-          font-size: 1.5rem;
-          z-index: 5;
-          text-shadow: 0 0 10px #0ea5e9;
+          position: absolute; top: 50%; left: 50%;
+          transform: translate(-50%, -50%); z-index: 5;
+          display: flex; align-items: center; justify-content: center;
         }
+        .hospital-bg {
+          position: absolute; width: 44px; height: 44px;
+          background: rgba(15, 23, 42, 0.9);
+          border: 2px solid #0ea5e9; border-radius: 8px;
+          box-shadow: 0 0 10px rgba(14,165,233,0.3);
+        }
+        .hospital-icon { color: #fff; font-size: 1.4rem; z-index: 2; }
         .node-pulse {
-          position: absolute;
-          top: 50%; left: 50%;
-          width: 40px; height: 40px;
-          background: rgba(14, 165, 233, 0.2);
-          border-radius: 50%;
-          transform: translate(-50%, -50%);
-          animation: pulseMarker 2s infinite;
+          position: absolute; width: 44px; height: 44px;
+          background: transparent; border: 2px solid #0ea5e9; border-radius: 8px;
         }
-        @keyframes pulseMarker {
-          0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }
-          100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-        }
-        .ambulance-node {
-          position: absolute;
-          z-index: 4;
-          cursor: pointer;
+
+        /* Ambulance Nodes */
+        .ambulance-node { position: absolute; z-index: 6; cursor: pointer; transform: translate(-50%, -50%); }
+        .amb-pulse {
+          position: absolute; top: 50%; left: 50%;
+          width: 28px; height: 28px; margin-top: -14px; margin-left: -14px;
+          border-radius: 50%; z-index: -1;
         }
         .node-icon {
-          width: 28px; height: 28px;
-          background: var(--node-color);
-          border-radius: 6px;
-          display: flex; align-items: center; justify-content: center;
-          color: #fff; font-size: 0.9rem;
-          box-shadow: 0 0 15px var(--node-color);
-          border: 2px solid rgba(255,255,255,0.4);
+          width: 28px; height: 28px; background: var(--node-color);
+          border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          color: #fff; font-size: 0.9rem; border: 2px solid #fff;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative;
         }
         .node-label {
-          position: absolute;
-          left: 36px; top: 0;
-          background: rgba(15, 23, 42, 0.9);
-          backdrop-filter: blur(4px);
-          padding: 2px 8px;
-          border-radius: 4px;
-          border: 1px solid rgba(255,255,255,0.1);
-          white-space: nowrap;
-          display: flex; flex-direction: column;
+          position: absolute; left: 36px; top: -6px;
+          background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
+          padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+          white-space: nowrap; display: flex; flex-direction: column;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
-        .node-id { font-size: 0.7rem; font-weight: 700; color: #fff; }
-        .node-eta { font-size: 0.65rem; color: #94a3b8; }
-        .node-trace {
-          position: absolute;
-          top: 14px; left: 14px;
-          width: 4px; height: 4px;
-          background: var(--node-color);
-          border-radius: 50%;
-          opacity: 0.5;
-          box-shadow: 0 0 10px var(--node-color);
-        }
+        .node-id { font-size: 0.75rem; font-weight: 700; color: #fff; }
+        .node-eta { font-size: 0.65rem; color: #cbd5e1; font-weight: 500; }
+
+        /* HUD Overlay */
         .tracker-hud {
-          position: absolute;
-          bottom: 15px; left: 15px; right: 15px;
-          display: flex; gap: 20px;
-          background: rgba(255,255,255,0.05);
-          backdrop-filter: blur(10px);
-          padding: 10px 15px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.1);
-          z-index: 10;
+          position: absolute; bottom: 15px; left: 15px; right: 15px;
+          display: flex; gap: 30px; background: rgba(15, 23, 42, 0.75);
+          backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.05); z-index: 10;
         }
         .hud-group { display: flex; flex-direction: column; gap: 2px; }
-        .hud-label { font-size: 0.6rem; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; }
-        .hud-value { font-size: 0.75rem; color: #f1f5f9; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-        .status-dot-green { width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 5px #10b981; }
+        .hud-label { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+        .hud-value { font-size: 0.85rem; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif; }
+        .status-dot-green { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: blink 2s infinite; }
       `}</style>
     </div>
   );

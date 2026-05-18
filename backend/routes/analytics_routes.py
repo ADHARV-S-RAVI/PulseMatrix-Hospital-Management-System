@@ -25,8 +25,15 @@ def bed_occupancy():
     """
     GET /analytics/bed_occupancy
     """
-    total = query_db("SELECT COUNT(*) as count FROM beds", one=True)['count']
-    occupied = query_db("SELECT COUNT(*) as count FROM beds WHERE status = 'Occupied'", one=True)['count']
+    query = """
+        SELECT 
+            COUNT(*) as total_beds,
+            SUM(CASE WHEN status = 'Occupied' THEN 1 ELSE 0 END) as occupied_beds
+        FROM beds
+    """
+    result = query_db(query, one=True)
+    total = result['total_beds'] if result['total_beds'] else 0
+    occupied = result['occupied_beds'] if result['occupied_beds'] else 0
     
     return jsonify({
         "total_beds": total,
@@ -49,8 +56,15 @@ def doctor_availability():
     GET /analytics/doctor_availability
     Count of available doctors.
     """
-    total = query_db("SELECT COUNT(*) as count FROM doctors", one=True)['count']
-    available = query_db("SELECT COUNT(*) as count FROM doctors WHERE availability = 'Available'", one=True)['count']
+    query = """
+        SELECT 
+            COUNT(*) as total_doctors,
+            SUM(CASE WHEN availability = 'Available' THEN 1 ELSE 0 END) as available_doctors
+        FROM doctors
+    """
+    result = query_db(query, one=True)
+    total = result['total_doctors'] if result['total_doctors'] else 0
+    available = result['available_doctors'] if result['available_doctors'] else 0
     
     return jsonify({
         "total_doctors": total,

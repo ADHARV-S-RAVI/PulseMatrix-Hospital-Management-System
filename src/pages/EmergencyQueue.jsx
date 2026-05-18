@@ -118,9 +118,9 @@ export default function EmergencyQueue({ addToast }) {
       )}
 
       <div className="glass-panel p-4">
-        <div className="table-responsive">
+        <div className="table-responsive" style={{ maxHeight: "70vh", overflowY: "auto" }}>
           <table className="premium-table w-100">
-            <thead>
+            <thead style={{ position: "sticky", top: 0, background: "rgba(15, 23, 42, 0.95)", zIndex: 1 }}>
               <tr>
                 {["Case ID","Patient","Priority","Department","Bed","Doctor","Time","Phase","Actions"].map(h => <th key={h}>{h}</th>)}
               </tr>

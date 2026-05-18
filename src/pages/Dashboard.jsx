@@ -30,11 +30,83 @@ const INVENTORY = [
   { item: "Trauma Packs", level: 12, status: "Critical" },
 ];
 
+function AnimatedCounter({ value, color }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const duration = 1500;
+    const increment = value / (duration / 16);
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.ceil(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <motion.span style={{ color }} animate={{ textShadow: [`0 0 5px ${color}`, `0 0 15px ${color}`, `0 0 5px ${color}`] }} transition={{ repeat: Infinity, duration: 2 }}>{count}</motion.span>;
+}
+
 export default function Dashboard({ onNavigate }) {
   const { patients, doctors, beds, admissions, disasterMode, aiPredictions, toggleDisasterMode } = useApp();
   const highestRiskPred = aiPredictions.reduce((prev, current) => (prev.risk > current.risk) ? prev : current);
   const themeColor = highestRiskPred.color;
   const active = patients.filter(p => p.status !== "Discharged");
+
+  // Dynamic Interactive States for tactical operations
+  const [reactorPower, setReactorPower] = useState(92);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [securityStatus, setSecurityStatus] = useState("SECURE");
+  const [isPurging, setIsPurging] = useState(false);
+  const [drone4Status, setDrone4Status] = useState("IN TRANSIT");
+  const [tickerAlert, setTickerAlert] = useState("SYSTEM ALERT: Oxygen pressure stable in Sector 4.");
+
+  // Action methods
+  const handleCalibrateReactor = () => {
+    if (isCalibrating) return;
+    setIsCalibrating(true);
+    setReactorPower(35); // simulate temporary drop during grid recalibration
+    setTimeout(() => {
+      let interval = setInterval(() => {
+        setReactorPower(p => {
+          if (p >= 100) {
+            clearInterval(interval);
+            setIsCalibrating(false);
+            return 100;
+          }
+          return p + 5;
+        });
+      }, 100);
+    }, 1000);
+  };
+
+  const handlePurgeDefenses = () => {
+    if (isPurging) return;
+    setIsPurging(true);
+    setSecurityStatus("HIPAA AUDIT PURGE");
+    setTimeout(() => {
+      setSecurityStatus("SECURE");
+      setIsPurging(false);
+    }, 3000);
+  };
+
+  const handleDispatchDrone = () => {
+    setDrone4Status(prev => prev === "IN TRANSIT" ? "DISPATCHED" : prev === "DISPATCHED" ? "DELIVERED" : "IN TRANSIT");
+  };
+
+  const handleBroadcastAlert = () => {
+    const alerts = [
+      "CODE BLUE: Resuscitation team to Sector 4 ICU immediately!",
+      "TRAUMA ALERT: Level 1 Trauma patient arriving in 5 minutes via Heliport.",
+      "CLINICAL ADVISORY: Blood bank O-negative reserves successfully replenished.",
+      "BIOSAFETY ADVISORY: Pathogen containment filters successfully sanitized."
+    ];
+    const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+    setTickerAlert(randomAlert);
+  };
 
   // Dynamic Chart Data
   const sevCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
@@ -54,8 +126,8 @@ export default function Dashboard({ onNavigate }) {
   };
 
   const cardVariants = {
-    hidden: { y: 30, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+    hidden: { y: 30, opacity: 0, scale: 0.95 },
+    visible: { y: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100 } }
   };
 
   return (
@@ -69,7 +141,7 @@ export default function Dashboard({ onNavigate }) {
           <div className="ticker-text">
             <span>INFLOW RATE: 2.4 PATIENTS/HR</span>
             <span>BED OCCUPANCY: {Math.round((beds.filter(b => b.status === 'Occupied').length / beds.length) * 100)}%</span>
-            <span>SYSTEM ALERT: Oxygen pressure stable in Sector 4.</span>
+            <span>{tickerAlert}</span>
           </div>
         </div>
       </div>
@@ -79,8 +151,9 @@ export default function Dashboard({ onNavigate }) {
         {/* ── Command Header ── */}
         <motion.div 
           className="command-header glass-panel p-4 mb-4"
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          initial={{ y: -50, opacity: 0, filter: "blur(10px)" }}
+          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <div className="row align-items-center">
             <div className="col-auto">
@@ -92,9 +165,9 @@ export default function Dashboard({ onNavigate }) {
               <h1 className="command-title mb-1">PULSE MATRIX COMMAND</h1>
               <div className="command-subtitle text-uppercase letter-spacing-2">Central Operations & Clinical Logistics</div>
               <div className="d-flex gap-4 mt-3">
-                <div className="cmd-stat">ACTIVE: <span className="text-primary">{active.length}</span></div>
-                <div className="cmd-stat">CRITICAL: <span className="text-danger">{active.filter(p => p.severity === 'Critical').length}</span></div>
-                <div className="cmd-stat">STAFF: <span className="text-success">{doctors.filter(d => d.status === 'Available').length} READY</span></div>
+                <div className="cmd-stat">ACTIVE: <AnimatedCounter value={active.length} color="#0ea5e9" /></div>
+                <div className="cmd-stat">CRITICAL: <AnimatedCounter value={active.filter(p => p.severity === 'Critical').length} color="#f43f5e" /></div>
+                <div className="cmd-stat">STAFF READY: <AnimatedCounter value={doctors.filter(d => d.status === 'Available').length} color="#10b981" /></div>
               </div>
             </div>
             <div className="col-auto">
@@ -120,13 +193,43 @@ export default function Dashboard({ onNavigate }) {
           <div className="col-xl-9">
             {/* Row 1: AI Risks */}
             <div className="row g-4 mb-4">
-              {aiPredictions.map(pred => (
+              {aiPredictions.map((pred, i) => (
                 <div key={pred.id} className="col-md-4">
-                  <motion.div className="glass-panel p-3 hud-card-v2" whileHover={{ scale: 1.02, rotateX: 5 }}>
+                  <motion.div 
+                    className="glass-panel p-3 hud-card-v2" 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      boxShadow: [`0 0 0px ${pred.color}00`, `0 0 15px ${pred.color}66`, `0 0 0px ${pred.color}00`]
+                    }}
+                    transition={{ 
+                      opacity: { duration: 0.5, delay: i * 0.1 },
+                      scale: { duration: 0.5, delay: i * 0.1 },
+                      boxShadow: { repeat: Infinity, duration: 3, delay: i * 0.5 } 
+                    }}
+                    whileHover={{ scale: 1.05, rotateX: 5, boxShadow: `0 0 30px ${pred.color}99` }}
+                  >
                     <div className="small text-muted fw-bold mb-1">{pred.type} RISK</div>
-                    <div className="fs-3 fw-bold" style={{ color: pred.color }}>{pred.risk}%</div>
-                    <div className="progress mt-2" style={{ height: 3, background: "rgba(255,255,255,0.05)" }}>
-                      <div className="progress-bar" style={{ width: `${pred.risk}%`, background: pred.color }} />
+                    <div className="fs-3 fw-bold"><AnimatedCounter value={pred.risk} color={pred.color} />%</div>
+                    <div className="progress mt-2" style={{ height: 4, background: "rgba(255,255,255,0.05)", overflow: "visible" }}>
+                      <motion.div 
+                        className="progress-bar" 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pred.risk}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        style={{ 
+                          background: `linear-gradient(90deg, transparent, ${pred.color})`,
+                          boxShadow: `0 0 10px ${pred.color}`,
+                          position: "relative"
+                        }} 
+                      >
+                        <motion.div 
+                          style={{ position: "absolute", right: 0, top: -2, width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: `0 0 10px ${pred.color}` }}
+                          animate={{ scale: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
+                          transition={{ repeat: Infinity, duration: 1 }}
+                        />
+                      </motion.div>
                     </div>
                   </motion.div>
                 </div>
@@ -169,9 +272,9 @@ export default function Dashboard({ onNavigate }) {
                 <h3 className="hud-title-sm mb-0"><i className="bi bi-table me-2" />RECENT INTAKE FLOW</h3>
                 <button className="btn btn-sm btn-outline-primary" onClick={() => onNavigate("queue")}>VIEW FULL QUEUE</button>
               </div>
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ maxHeight: "450px", overflowY: "auto" }}>
                 <table className="premium-table w-100">
-                  <thead>
+                  <thead style={{ position: "sticky", top: 0, background: "rgba(15, 23, 42, 0.95)", zIndex: 1 }}>
                     <tr>
                       {["CASE ID","PATIENT","SEVERITY","DEPT","BED","DOCTOR","STATUS"].map(h => <th key={h}>{h}</th>)}
                     </tr>
@@ -180,7 +283,7 @@ export default function Dashboard({ onNavigate }) {
                     {active.length === 0 ? (
                       <tr><td colSpan={7} className="text-center py-4 opacity-50">NO ACTIVE CASES</td></tr>
                     ) : (
-                      active.slice(0, 8).map(p => (
+                      active.map(p => (
                         <tr key={p.id}>
                           <td className="fw-bold">{p.id}</td>
                           <td>{p.name}</td>
@@ -194,6 +297,38 @@ export default function Dashboard({ onNavigate }) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+
+            {/* Row 5: Infrastructure & Logistics (NEW FEATURES) */}
+            <motion.div className="row g-4 mt-1" variants={containerVariants}>
+              <div className="col-md-4">
+                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
+                  <h3 className="hud-title-sm mb-3"><i className="bi bi-fan me-2" />BIOSAFETY & VENTILATION</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Pathogen Filter Capacity</span><span className="text-success">99.9%</span></div>
+                  <div className="progress mb-3" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-success" style={{ width: "100%" }}/></div>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">ICU Negative Air Flow</span><span className="text-info">Optimal</span></div>
+                  <div className="progress" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-info" style={{ width: "85%" }}/></div>
+                </motion.div>
+              </div>
+              <div className="col-md-4">
+                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
+                  <h3 className="hud-title-sm mb-3"><i className="bi bi-lightning-charge-fill me-2" />LIFE SUPPORT POWER</h3>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Backup Power Grid</span><span className="text-primary" style={{ textShadow: "0 0 5px #0ea5e9" }}>{isCalibrating ? "RECONFIGURING" : "STABLE"}</span></div>
+                  <div className="progress mb-3" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-primary progress-bar-striped progress-bar-animated" style={{ width: `${reactorPower}%` }}/></div>
+                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Oxygen Concentrators</span><span className="text-warning">STANDBY READY</span></div>
+                  <div className="progress" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-warning" style={{ width: "100%" }}/></div>
+                </motion.div>
+              </div>
+              <div className="col-md-4">
+                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
+                  <h3 className="hud-title-sm mb-3"><i className="bi bi-shield-lock-fill me-2" />HIPAA EHR SECURITY</h3>
+                  <div className="x-small text-muted mb-2">Network Encryption: <span className="text-success fw-bold">AES-1024</span></div>
+                  <div className="x-small text-muted mb-2">EHR Record Breaches: <span className="text-success fw-bold">0 DETECTED</span></div>
+                  <div className="p-2 mt-2 rounded" style={{ border: `1px solid ${isPurging ? "rgba(244, 63, 94, 0.5)" : "rgba(16,185,129,0.3)"}`, background: isPurging ? "rgba(244, 63, 94, 0.1)" : "rgba(16,185,129,0.05)" }}>
+                     <div className="x-small text-center fw-bold" style={{ color: isPurging ? "#f43f5e" : "#10b981", animation: "blink 1.5s infinite", textShadow: `0 0 5px ${isPurging ? "#f43f5e" : "#10b981"}` }}>{securityStatus}</div>
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
           </div>
@@ -232,6 +367,49 @@ export default function Dashboard({ onNavigate }) {
             <div className="mt-4">
               <AIHologramAssistant />
             </div>
+
+            {/* NEW FEATURE: Drone Network & Fatigue */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
+              <h3 className="hud-title-sm mb-3"><i className="bi bi-send-fill me-2" />TRAUMA DRONE SUPPLY</h3>
+              <div className="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
+                 <div className="x-small"><i className="bi bi-box-seam me-2 text-info" style={{ textShadow: "0 0 5px #0ea5e9" }}/>Drone Unit D-04</div>
+                 <span className="badge x-small" style={{ 
+                   background: drone4Status === "IN TRANSIT" ? "#0ea5e9" : drone4Status === "DISPATCHED" ? "#f59e0b" : "#10b981", 
+                   boxShadow: `0 0 10px ${drone4Status === "IN TRANSIT" ? "#0ea5e9" : drone4Status === "DISPATCHED" ? "#f59e0b" : "#10b981"}aa`
+                 }}>{drone4Status}</span>
+              </div>
+              <div className="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
+                 <div className="x-small"><i className="bi bi-box-seam me-2 text-warning"/>Drone Unit D-11</div>
+                 <span className="badge bg-warning text-dark x-small">CHARGING</span>
+              </div>
+            </motion.div>
+
+            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
+              <h3 className="hud-title-sm mb-3"><i className="bi bi-person-lines-fill me-2" />AI CLINICAL STAFF FATIGUE</h3>
+              <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">ER Trauma Team Alpha</span><span className="text-danger fw-bold" style={{ textShadow: "0 0 5px #f43f5e" }}>88%</span></div>
+              <div className="progress mb-2" style={{ height: 3, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-danger" style={{ width: "88%" }}/></div>
+              <div className="x-small text-muted" style={{ fontSize: "0.6rem" }}>Recommendation: Shift rotation in 45m</div>
+            </motion.div>
+
+            {/* ── NEW FEATURE: TACTICAL OPERATIONS DECK ── */}
+            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
+              <h3 className="hud-title-sm mb-3"><i className="bi bi-cpu-fill me-2" />CLINICAL OPERATIONS PANEL</h3>
+              <div className="d-flex flex-column gap-2">
+                <button className="btn btn-sm btn-outline-primary text-start d-flex justify-content-between align-items-center" onClick={handleCalibrateReactor} disabled={isCalibrating}>
+                  <span><i className="bi bi-lightning-charge me-2"/>RECONFIG LIFE SUPPORT</span>
+                  {isCalibrating && <span className="spinner-border spinner-border-sm" role="status"/>}
+                </button>
+                <button className="btn btn-sm btn-outline-danger text-start" onClick={handlePurgeDefenses} disabled={isPurging}>
+                  <i className="bi bi-shield-slash me-2"/>SANITIZE HIPAA RECORDS
+                </button>
+                <button className="btn btn-sm btn-outline-info text-start" onClick={handleDispatchDrone}>
+                  <i className="bi bi-airplane-engines me-2"/>DISPATCH MED-DELIVERY DRONE
+                </button>
+                <button className="btn btn-sm btn-outline-warning text-start" onClick={handleBroadcastAlert}>
+                  <i className="bi bi-broadcast me-2"/>PAGE EMERGENCY CODE
+                </button>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>

@@ -156,7 +156,7 @@ export default function ManagementUI({ addToast }) {
       </div>
 
       {tab === "doctors" && (
-        <div className="row">
+        <div className="row" style={{ maxHeight: "75vh", overflowY: "auto", overflowX: "hidden" }}>
           {doctors.length === 0 ? (
             <div className="col-12 text-center text-muted py-4">No doctors available.</div>
           ) : doctors.map(doc => (
@@ -171,7 +171,7 @@ export default function ManagementUI({ addToast }) {
             <h4 className="fs-6 fw-bold mb-0 text-primary"><i className="bi bi-display me-2"/>Animated Bed Array Matrix</h4>
             <span className="badge bg-light border">Hover over capsule to view assigned patient</span>
           </div>
-          <div className="animated-bed-grid mb-4">
+          <div className="animated-bed-grid mb-4" style={{ maxHeight: "400px", overflowY: "auto" }}>
             {beds.map(bed => {
               const stCls = bed.status === "Occupied" ? "unit-occupied" : bed.status === "Maintenance" ? "unit-maintenance" : "unit-available";
               return (
@@ -201,7 +201,7 @@ export default function ManagementUI({ addToast }) {
           </div>
 
           <h4 className="fs-6 fw-bold mb-3 mt-4">Detailed Allocation Roster</h4>
-          <div className="row">
+          <div className="row" style={{ maxHeight: "50vh", overflowY: "auto", overflowX: "hidden" }}>
             {beds.length === 0 ? (
               <div className="col-12 text-center text-muted py-4">No beds available.</div>
             ) : beds.map(bed => (
