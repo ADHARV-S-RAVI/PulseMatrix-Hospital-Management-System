@@ -37,6 +37,20 @@ export const login = (username, password) => {
   });
 };
 
+export const loginDoctor = (email, password) => {
+  return fetchAPI("/login_doctor", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+};
+
+export const registerDoctor = (email, password, name, specialty) => {
+  return fetchAPI("/register_doctor", {
+    method: "POST",
+    body: JSON.stringify({ email, password, name, specialty }),
+  });
+};
+
 export const registerAdmin = (username, password) => {
   return fetchAPI("/register_admin", {
     method: "POST",
@@ -73,6 +87,27 @@ export const updatePatient = (id, data) => {
 export const deletePatient = (id) => {
   return fetchAPI(`/delete_patient/${id}`, {
     method: "DELETE",
+  });
+};
+
+export const assignDoctor = (patientId, doctorId) => {
+  return fetchAPI(`/patient/${patientId}/assign_doctor`, {
+    method: "POST",
+    body: JSON.stringify({ doctor_id: doctorId, assigned_by: "ADMIN" }),
+  });
+};
+
+export const assignBed = (patientId, bedId) => {
+  return fetchAPI(`/patient/${patientId}/assign_bed`, {
+    method: "POST",
+    body: JSON.stringify({ bed_id: bedId }),
+  });
+};
+
+export const transferBed = (patientId, bedId) => {
+  return fetchAPI(`/patient/${patientId}/transfer_bed`, {
+    method: "POST",
+    body: JSON.stringify({ bed_id: bedId }),
   });
 };
 
@@ -141,3 +176,144 @@ export const getDepartmentDistribution = () => fetchAPI("/engine/viz/department_
 
 export const getAdmissionTrends = () => fetchAPI("/engine/viz/admission_trends");
 
+// ── Clinical Operations ───────────────────────────────────
+export const getDoctorPatients = (doctorId) => fetchAPI(`/clinical/doctor/${doctorId}/patients`);
+
+export const getDoctorDashboardStats = (doctorId) => fetchAPI(`/clinical/doctor/${doctorId}/dashboard_stats`);
+
+export const getPatientNotes = (patientId) => fetchAPI(`/clinical/patient/${patientId}/notes`);
+
+export const getPatientTimeline = (patientId) => fetchAPI(`/clinical/patient/${patientId}/timeline`);
+
+export const addPatientNote = (patientId, noteData) => {
+  return fetchAPI(`/clinical/patient/${patientId}/notes`, {
+    method: "POST",
+    body: JSON.stringify(noteData),
+  });
+};
+
+export const getPatientLabs = (patientId) => fetchAPI(`/clinical/patient/${patientId}/labs`);
+
+export const requestLab = (patientId, labData) => {
+  return fetchAPI(`/clinical/patient/${patientId}/labs`, {
+    method: "POST",
+    body: JSON.stringify(labData),
+  });
+};
+
+export const getSurgeries = () => fetchAPI("/clinical/surgeries");
+
+export const scheduleSurgery = (surgeryData) => {
+  return fetchAPI("/clinical/surgeries", {
+    method: "POST",
+    body: JSON.stringify(surgeryData),
+  });
+};
+
+export const getPatientImaging = (patientId) => fetchAPI(`/clinical/patient/${patientId}/imaging`);
+
+export const requestImaging = (patientId, imagingData) => {
+  return fetchAPI(`/clinical/patient/${patientId}/imaging`, {
+    method: "POST",
+    body: JSON.stringify(imagingData),
+  });
+};
+
+export const getPatientPrescriptions = (patientId) => fetchAPI(`/clinical/patient/${patientId}/prescriptions`);
+
+export const addPatientPrescription = (patientId, prescriptionData) => {
+  return fetchAPI(`/clinical/patient/${patientId}/prescriptions`, {
+    method: "POST",
+    body: JSON.stringify(prescriptionData),
+  });
+};
+
+export const getAllOperations = () => fetchAPI("/operations/all");
+
+// ── Operations ────────────────────────────────────────────────────────────────
+export const getPatientOperations = (patientId) =>
+  fetchAPI(`/operations/patient/${patientId}`);
+
+export const createOperation = (patientId, operationData) =>
+  fetchAPI(`/operations/patient/${patientId}`, {
+    method: "POST",
+    body: JSON.stringify(operationData),
+  });
+
+export const getOperation = (operationId) =>
+  fetchAPI(`/operations/${operationId}`);
+
+export const updateOperationStatus = (operationId, statusData) =>
+  fetchAPI(`/operations/${operationId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify(statusData),
+  });
+
+export const cancelOperation = (operationId, data) =>
+  fetchAPI(`/operations/${operationId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+// Typed operation helpers — all call the generalized create endpoint
+const makeOperationHelper = (type) => (patientId, doctorId, details = {}, priority = "Normal") =>
+  createOperation(patientId, { operation_type: type, doctor_id: doctorId, priority, details });
+
+export const submitEmergencyCode = makeOperationHelper("emergency_code");
+export const submitBloodRequest = makeOperationHelper("blood_request");
+export const submitSpecialistConsult = makeOperationHelper("specialist_consult");
+export const submitVentilatorRequest = makeOperationHelper("ventilator");
+export const submitEmergencyOT = makeOperationHelper("emergency_ot");
+export const submitNurseAssistance = makeOperationHelper("nurse_assistance");
+export const submitInfusionRequest = makeOperationHelper("infusion");
+export const submitLabEscalation = makeOperationHelper("lab_escalation");
+export const submitImagingPriority = makeOperationHelper("imaging_priority");
+export const submitDeteriorationEscalation = makeOperationHelper("deterioration");
+export const submitICUTeamActivation = makeOperationHelper("icu_team");
+export const submitTransportRequest = makeOperationHelper("transport");
+export const submitPatientMovement = makeOperationHelper("patient_movement");
+export const submitOxygenRequest = makeOperationHelper("oxygen");
+export const submitEquipmentRequest = makeOperationHelper("equipment");
+export const submitIsolationRequest = makeOperationHelper("isolation");
+export const submitMedicalDocuments = makeOperationHelper("documents");
+export const submitReferral = makeOperationHelper("referral");
+export const submitIncidentReport = makeOperationHelper("incident");
+export const submitHandover = makeOperationHelper("handover");
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+export const getDoctorNotifications = (doctorId) =>
+  fetchAPI(`/notifications/doctor/${doctorId}`);
+
+export const markNotificationRead = (notificationId) =>
+  fetchAPI(`/notifications/${notificationId}/read`, { method: "POST" });
+
+export const markAllNotificationsRead = (doctorId) =>
+  fetchAPI(`/notifications/mark-all-read/${doctorId}`, { method: "POST" });
+
+// ── AI Endpoints ──────────────────────────────────────────────────────────────
+export const aiPatientSummary = (patientId, doctorId) =>
+  fetchAPI(`/ai/patient-summary`, {
+    method: "POST",
+    body: JSON.stringify({ patient_id: patientId, doctor_id: doctorId }),
+  });
+
+export const aiHandover = (patientId, doctorId) =>
+  fetchAPI(`/ai/handover`, {
+    method: "POST",
+    body: JSON.stringify({ patient_id: patientId, doctor_id: doctorId }),
+  });
+
+export const aiClinicalNote = (rawNote, patientId, doctorId) =>
+  fetchAPI(`/ai/clinical-note`, {
+    method: "POST",
+    body: JSON.stringify({ raw_note: rawNote, patient_id: patientId, doctor_id: doctorId }),
+  });
+
+export const aiOperationsRecommendation = (patientId, doctorId) =>
+  fetchAPI(`/ai/operations-recommendation`, {
+    method: "POST",
+    body: JSON.stringify({ patient_id: patientId, doctor_id: doctorId }),
+  });
+
+export const aiRisk = (patientId) =>
+  fetchAPI(`/ai/risk/${patientId}`);

@@ -109,3 +109,106 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE CASCADE,
     FOREIGN KEY (medicine_id) REFERENCES medicines(medicine_id) ON DELETE CASCADE
 );
+
+-- 11. Ambulances
+CREATE TABLE IF NOT EXISTS ambulances (
+    ambulance_id TEXT PRIMARY KEY,
+    driver_name TEXT NOT NULL,
+    emt_team TEXT NOT NULL,
+    current_location TEXT NOT NULL,
+    destination TEXT,
+    priority_level TEXT NOT NULL,
+    status TEXT DEFAULT 'Available',
+    eta TEXT,
+    x REAL DEFAULT 50.0,
+    y REAL DEFAULT 50.0,
+    color TEXT DEFAULT '#00E5FF'
+);
+
+-- 12. Dispatch Logs
+CREATE TABLE IF NOT EXISTS dispatch_logs (
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ambulance_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    FOREIGN KEY (ambulance_id) REFERENCES ambulances(ambulance_id) ON DELETE CASCADE
+);
+
+-- 13. Clinical Notes
+CREATE TABLE IF NOT EXISTS clinical_notes (
+    note_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    note_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE SET NULL
+);
+
+-- 14. Lab Requests
+CREATE TABLE IF NOT EXISTS lab_requests (
+    request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    test_name TEXT NOT NULL,
+    status TEXT DEFAULT 'Pending',
+    results TEXT,
+    request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completion_date DATETIME,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE SET NULL
+);
+
+-- 15. Imaging Requests
+CREATE TABLE IF NOT EXISTS imaging_requests (
+    request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    imaging_type TEXT NOT NULL,
+    status TEXT DEFAULT 'Pending',
+    results TEXT,
+    image_url TEXT,
+    request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completion_date DATETIME,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE SET NULL
+);
+
+-- 16. Surgeries
+CREATE TABLE IF NOT EXISTS surgeries (
+    surgery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    surgery_type TEXT NOT NULL,
+    scheduled_date DATETIME NOT NULL,
+    status TEXT DEFAULT 'Scheduled',
+    notes TEXT,
+    FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id) ON DELETE SET NULL
+);
+
+-- 17. Messages
+CREATE TABLE IF NOT EXISTS messages (
+    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER,
+    sender_type TEXT NOT NULL,
+    receiver_id INTEGER,
+    receiver_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 18. Resource Requests
+CREATE TABLE IF NOT EXISTS resource_requests (
+    request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requester_id INTEGER,
+    requester_type TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    priority TEXT DEFAULT 'Normal',
+    status TEXT DEFAULT 'Pending',
+    request_date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+

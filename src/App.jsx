@@ -8,8 +8,17 @@ import PatientRegistration from "./pages/PatientRegistration";
 import EmergencyQueue from "./pages/EmergencyQueue";
 import ManagementUI from "./pages/ManagementUI";
 import PatientDashboard from "./pages/PatientDashboard";
+import DoctorDashboard from "./pages/DoctorDashboard";
 import Sidebar from "./components/Sidebar";
 import ToastContainer from "./components/ToastContainer";
+// --- New Pages (Command Center) ---
+import DigitalTwin from './pages/DigitalTwin';
+import AITriage from './pages/AITriage';
+import AmbulanceCommandCenter from './pages/AmbulanceCommandCenter';
+import Analytics from './pages/Analytics';
+import ResourceManagement from './pages/ResourceManagement';
+import WorkforceManagement from './pages/WorkforceManagement';
+import AIHologramAssistant from './components/AIHologramAssistant';
 import "./App.css";
 
 // ── Page transition wrapper ──────────────────────────────────
@@ -108,6 +117,8 @@ function AppShell() {
     addToast("System Re-initialized", "Factory defaults restored.", "success");
   };
 
+  const { setGlobalNavigate } = useApp();
+  useEffect(() => { setGlobalNavigate(handleNav); }, [setGlobalNavigate]);
   const handleNav = (p) => { setPage(p); setSidebar(false); };
 
   // ── Screen: Hero ─────────────────────────────────────────
@@ -133,9 +144,10 @@ function AppShell() {
   if (screen === "login") return (
     <>
       <LoginPage
-        onLogin={handleLogin}
         prefilledRole={selectedRole}
+        onLogin={handleLogin}
         onBack={() => setScreen("roleSelect")}
+        onHome={() => setScreen("hero")}
       />
       <ToastContainer toasts={toasts} />
     </>
@@ -152,6 +164,18 @@ function AppShell() {
     </div>
   );
 
+  // ── Screen: Doctor Dashboard (standalone, no sidebar) ───
+  if (screen === "app" && userRole === "doctor") return (
+    <div id="app-container">
+      <main className="main-wrapper" style={{ marginLeft: 0, paddingLeft: 0 }}>
+        <h1 className="visually-hidden">Pulse_Matrix – Doctor Portal</h1>
+        {/* We reuse patientId state to store the doctor's ID upon login */}
+        <DoctorDashboard doctorId={patientId} onLogout={handleLogout} />
+      </main>
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+
   // ── Main admin dashboard layout ───────────────────────────
   const pageEl = (() => {
     switch (page) {
@@ -159,12 +183,23 @@ function AppShell() {
       case "registration": return <PatientRegistration onNavigate={handleNav} addToast={addToast} />;
       case "queue":        return <EmergencyQueue addToast={addToast} />;
       case "management":   return <ManagementUI addToast={addToast} />;
+      
+      // New Admin Command Center routes
+      case "digital_twin": return <DigitalTwin />;
+      case "triage":       return <AITriage />;
+      case "ambulance":    return <AmbulanceCommandCenter />;
+      case "analytics":    return <Analytics />;
+      case "resources":    return <ResourceManagement />;
+      case "workforce":    return <WorkforceManagement />;
+
       default:             return <Dashboard onNavigate={handleNav} />;
     }
   })();
 
+  const isDarkNeonPage = ["dashboard", "digital_twin", "triage", "ambulance", "analytics", "resources", "workforce"].includes(page);
+
   return (
-    <div id="app-container">
+    <div id="app-container" className={isDarkNeonPage ? "dark-neon-theme" : ""}>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebar(false)} />}
 
       <Sidebar active={page} onNavigate={handleNav} onReset={handleReset} onLogout={handleLogout} sidebarOpen={sidebarOpen} />
@@ -267,6 +302,7 @@ function AppShell() {
         </div>
       )}
 
+      <AIHologramAssistant />
       <ToastContainer toasts={toasts} />
     </div>
   );

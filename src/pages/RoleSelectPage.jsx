@@ -21,6 +21,18 @@ const ROLES = [
     badgeCls: "badge-admin",
   },
   {
+    key: "doctor",
+    icon: "bi-stethoscope",
+    title: "Doctor",
+    subtitle: "Clinical Command Center",
+    description:
+      "Manage assigned patients, view live telemetry, prescribe treatments, and coordinate emergency responses.",
+    color: "#0ea5e9",
+    gradient: "linear-gradient(135deg,#0ea5e9 0%,#3b82f6 100%)",
+    badge: "Doctor",
+    badgeCls: "badge-doctor",
+  },
+  {
     key: "patient",
     icon: "bi-person-fill-check",
     title: "Patient",

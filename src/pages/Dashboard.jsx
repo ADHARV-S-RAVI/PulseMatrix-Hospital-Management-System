@@ -1,26 +1,27 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { SeverityChart, DepartmentChart, AdmissionsChart, BedOccupancyChart } from "../components/Charts";
 import MedicalScanner3D from "../components/MedicalScanner3D";
 import AmbulanceTracker from "../components/AmbulanceTracker";
 import AIHologramAssistant from "../components/AIHologramAssistant";
 import AdminMatrixBackground from "../components/AdminMatrixBackground";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "framer-motion";
+import { Activity, ShieldAlert, HeartPulse, Stethoscope, Zap } from "lucide-react";
 
-const SEVERITY_CLS = {
-  Critical: "severity-critical",
-  High:     "severity-major",
-  Medium:   "severity-moderate",
-  Low:      "severity-minor",
+const SEVERITY_COLORS = {
+  Critical: "text-accent border-accent/30 bg-accent/10",
+  High:     "text-warning border-warning/30 bg-warning/10",
+  Medium:   "text-blue-400 border-blue-400/30 bg-blue-400/10",
+  Low:      "text-success border-success/30 bg-success/10",
 };
 
-const STATUS_CLS = {
-  "Newly Admitted":  "bg-primary",
-  "In Treatment":    "bg-success",
-  "Awaiting Scans":  "bg-warning",
-  Stable:            "bg-info",
-  Recovering:        "bg-secondary",
-  "Discharge Ready": "bg-dark",
+const STATUS_COLORS = {
+  "Newly Admitted":  "bg-primary/20 text-primary",
+  "In Treatment":    "bg-success/20 text-success",
+  "Awaiting Scans":  "bg-warning/20 text-warning",
+  "Stable":            "bg-blue-400/20 text-blue-400",
+  "Recovering":        "bg-purple-400/20 text-purple-400",
+  "Discharge Ready": "bg-gray-400/20 text-gray-400",
 };
 
 const INVENTORY = [
@@ -47,28 +48,23 @@ function AnimatedCounter({ value, color }) {
     }, 16);
     return () => clearInterval(timer);
   }, [value]);
-  return <motion.span style={{ color }} animate={{ textShadow: [`0 0 5px ${color}`, `0 0 15px ${color}`, `0 0 5px ${color}`] }} transition={{ repeat: Infinity, duration: 2 }}>{count}</motion.span>;
+  return <motion.span style={{ color }} className="font-display drop-shadow-neon">{count}</motion.span>;
 }
 
-export default function Dashboard({ onNavigate }) {
-  const { patients, doctors, beds, admissions, disasterMode, aiPredictions, toggleDisasterMode } = useApp();
+export default function Dashboard() {
+  const { patients, doctors, beds, admissions, aiPredictions, operations, updateOperation } = useApp();
   const highestRiskPred = aiPredictions.reduce((prev, current) => (prev.risk > current.risk) ? prev : current);
   const themeColor = highestRiskPred.color;
   const active = patients.filter(p => p.status !== "Discharged");
+  const pendingOperations = (operations || []).filter(o => !['Completed', 'Cancelled', 'Rejected'].includes(o.status));
 
-  // Dynamic Interactive States for tactical operations
   const [reactorPower, setReactorPower] = useState(92);
   const [isCalibrating, setIsCalibrating] = useState(false);
-  const [securityStatus, setSecurityStatus] = useState("SECURE");
-  const [isPurging, setIsPurging] = useState(false);
-  const [drone4Status, setDrone4Status] = useState("IN TRANSIT");
-  const [tickerAlert, setTickerAlert] = useState("SYSTEM ALERT: Oxygen pressure stable in Sector 4.");
 
-  // Action methods
   const handleCalibrateReactor = () => {
     if (isCalibrating) return;
     setIsCalibrating(true);
-    setReactorPower(35); // simulate temporary drop during grid recalibration
+    setReactorPower(35);
     setTimeout(() => {
       let interval = setInterval(() => {
         setReactorPower(p => {
@@ -83,32 +79,6 @@ export default function Dashboard({ onNavigate }) {
     }, 1000);
   };
 
-  const handlePurgeDefenses = () => {
-    if (isPurging) return;
-    setIsPurging(true);
-    setSecurityStatus("HIPAA AUDIT PURGE");
-    setTimeout(() => {
-      setSecurityStatus("SECURE");
-      setIsPurging(false);
-    }, 3000);
-  };
-
-  const handleDispatchDrone = () => {
-    setDrone4Status(prev => prev === "IN TRANSIT" ? "DISPATCHED" : prev === "DISPATCHED" ? "DELIVERED" : "IN TRANSIT");
-  };
-
-  const handleBroadcastAlert = () => {
-    const alerts = [
-      "CODE BLUE: Resuscitation team to Sector 4 ICU immediately!",
-      "TRAUMA ALERT: Level 1 Trauma patient arriving in 5 minutes via Heliport.",
-      "CLINICAL ADVISORY: Blood bank O-negative reserves successfully replenished.",
-      "BIOSAFETY ADVISORY: Pathogen containment filters successfully sanitized."
-    ];
-    const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
-    setTickerAlert(randomAlert);
-  };
-
-  // Dynamic Chart Data
   const sevCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
   active.forEach(p => {
     let s = p.severity;
@@ -117,331 +87,247 @@ export default function Dashboard({ onNavigate }) {
     if (sevCounts[s] !== undefined) sevCounts[s]++;
   });
 
-  const trendsLabels = Object.keys(admissions || {});
-  const trendsValues = Object.values(admissions || {});
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
-
-  const cardVariants = {
-    hidden: { y: 30, opacity: 0, scale: 0.95 },
-    visible: { y: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 100 } }
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
   };
 
   return (
-    <div className="admin-ops-root">
+    <div className="relative w-full text-white">
       <AdminMatrixBackground />
-      
-      {/* ── Top HUD Ticker ── */}
-      <div className="admin-hud-top">
-        <div className="hud-ticker">
-          <div className="ticker-tag">LIVE OPS STREAM</div>
-          <div className="ticker-text">
-            <span>INFLOW RATE: 2.4 PATIENTS/HR</span>
-            <span>BED OCCUPANCY: {Math.round((beds.filter(b => b.status === 'Occupied').length / beds.length) * 100)}%</span>
-            <span>{tickerAlert}</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="container-fluid px-4 pt-5 pb-5 position-relative" style={{ zIndex: 10 }}>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
         
-        {/* ── Command Header ── */}
-        <motion.div 
-          className="command-header glass-panel p-4 mb-4"
-          initial={{ y: -50, opacity: 0, filter: "blur(10px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        >
-          <div className="row align-items-center">
-            <div className="col-auto">
-              <div style={{ width: 120, height: 120 }} className="scanner-container">
-                <MedicalScanner3D color={themeColor} />
-              </div>
+        {/* Command Header */}
+        <motion.div variants={itemVariants} className="glass-panel p-4 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10" />
+          
+          <div className="flex items-center gap-6">
+            <div className="w-24 h-24 rounded-full border-2 border-primary/30 flex items-center justify-center bg-black/50 shadow-neon">
+              <MedicalScanner3D color="#00E5FF" />
             </div>
-            <div className="col">
-              <h1 className="command-title mb-1">PULSE MATRIX COMMAND</h1>
-              <div className="command-subtitle text-uppercase letter-spacing-2">Central Operations & Clinical Logistics</div>
-              <div className="d-flex gap-4 mt-3">
-                <div className="cmd-stat">ACTIVE: <AnimatedCounter value={active.length} color="#0ea5e9" /></div>
-                <div className="cmd-stat">CRITICAL: <AnimatedCounter value={active.filter(p => p.severity === 'Critical').length} color="#f43f5e" /></div>
-                <div className="cmd-stat">STAFF READY: <AnimatedCounter value={doctors.filter(d => d.status === 'Available').length} color="#10b981" /></div>
-              </div>
+            <div>
+              <h1 className="text-3xl font-display font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white to-primary">
+                PULSE_MATRIX CORE
+              </h1>
+              <p className="text-sm font-mono text-primary/70 tracking-[0.2em] uppercase mt-1">Live Operations Feed</p>
             </div>
-            <div className="col-auto">
-              <div className="d-flex gap-2">
-                <button className={`btn-cmd ${disasterMode ? 'btn-cmd-danger' : ''}`} onClick={toggleDisasterMode}>
-                  <i className="bi bi-shield-exclamation me-1" /> {disasterMode ? "EXIT DISASTER" : "DISASTER MODE"}
-                </button>
-                <button className="btn-cmd btn-cmd-primary" onClick={() => onNavigate("registration")}>
-                  <i className="bi bi-plus-lg me-1" /> NEW INTAKE
-                </button>
-              </div>
+          </div>
+
+          <div className="flex gap-8 bg-black/40 p-4 rounded-xl border border-white/5">
+            <div className="text-center">
+              <p className="text-xs text-white/50 font-bold mb-1 tracking-widest">ACTIVE CASES</p>
+              <div className="text-2xl font-bold"><AnimatedCounter value={active.length} color="#00E5FF" /></div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-white/50 font-bold mb-1 tracking-widest">CRITICAL</p>
+              <div className="text-2xl font-bold"><AnimatedCounter value={sevCounts.Critical} color="#FF3366" /></div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-white/50 font-bold mb-1 tracking-widest">STAFF READY</p>
+              <div className="text-2xl font-bold"><AnimatedCounter value={doctors.filter(d=>d.status==='Available').length} color="#00FFAA" /></div>
             </div>
           </div>
         </motion.div>
 
-        <motion.div 
-          className="row g-4"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* ── Main Data Column ── */}
-          <div className="col-xl-9">
-            {/* Row 1: AI Risks */}
-            <div className="row g-4 mb-4">
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          
+          {/* Left Column - Main Ops */}
+          <div className="lg:col-span-8 space-y-4">
+            
+            {/* AI Predictions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {aiPredictions.map((pred, i) => (
-                <div key={pred.id} className="col-md-4">
-                  <motion.div 
-                    className="glass-panel p-3 hud-card-v2" 
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ 
-                      opacity: 1, 
-                      scale: 1,
-                      boxShadow: [`0 0 0px ${pred.color}00`, `0 0 15px ${pred.color}66`, `0 0 0px ${pred.color}00`]
-                    }}
-                    transition={{ 
-                      opacity: { duration: 0.5, delay: i * 0.1 },
-                      scale: { duration: 0.5, delay: i * 0.1 },
-                      boxShadow: { repeat: Infinity, duration: 3, delay: i * 0.5 } 
-                    }}
-                    whileHover={{ scale: 1.05, rotateX: 5, boxShadow: `0 0 30px ${pred.color}99` }}
-                  >
-                    <div className="small text-muted fw-bold mb-1">{pred.type} RISK</div>
-                    <div className="fs-3 fw-bold"><AnimatedCounter value={pred.risk} color={pred.color} />%</div>
-                    <div className="progress mt-2" style={{ height: 4, background: "rgba(255,255,255,0.05)", overflow: "visible" }}>
-                      <motion.div 
-                        className="progress-bar" 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pred.risk}%` }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        style={{ 
-                          background: `linear-gradient(90deg, transparent, ${pred.color})`,
-                          boxShadow: `0 0 10px ${pred.color}`,
-                          position: "relative"
-                        }} 
-                      >
-                        <motion.div 
-                          style={{ position: "absolute", right: 0, top: -2, width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: `0 0 10px ${pred.color}` }}
-                          animate={{ scale: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
-                          transition={{ repeat: Infinity, duration: 1 }}
-                        />
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                </div>
+                <motion.div key={pred.id} variants={itemVariants} className="glass-panel p-4 group hover:border-primary/50 transition-colors cursor-pointer">
+                  <p className="text-xs font-mono text-white/50 tracking-wider mb-2">{pred.type} RISK</p>
+                  <div className="flex items-end gap-2 mb-3">
+                    <span className="text-3xl font-bold leading-none font-display" style={{ color: pred.color }}>{pred.risk}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                    <motion.div 
+                      className="h-full rounded-full relative"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pred.risk}%` }}
+                      transition={{ duration: 1.5 }}
+                      style={{ backgroundColor: pred.color, boxShadow: `0 0 10px ${pred.color}` }}
+                    />
+                  </div>
+                </motion.div>
               ))}
             </div>
 
-            {/* Row 2: Main Charts */}
-            <div className="row g-4 mb-4">
-              <div className="col-lg-7">
-                <motion.div className="glass-panel p-4 hud-card-v2 h-100" variants={cardVariants}>
-                  <h3 className="hud-title-sm mb-4"><i className="bi bi-graph-up me-2" />ADMISSIONS FLOW (7D)</h3>
-                  <div style={{ height: 300 }}><AdmissionsChart labels={trendsLabels} data={trendsValues} /></div>
-                </motion.div>
-              </div>
-              <div className="col-lg-5">
-                <motion.div className="glass-panel p-4 hud-card-v2 h-100" variants={cardVariants}>
-                  <h3 className="hud-title-sm mb-4"><i className="bi bi-pie-chart me-2" />SEVERITY MATRIX</h3>
-                  <div style={{ height: 300 }}><SeverityChart labels={Object.keys(sevCounts)} data={Object.values(sevCounts)} /></div>
-                </motion.div>
-              </div>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div variants={itemVariants} className="glass-panel p-4">
+                <div className="flex items-center gap-2 mb-4 text-primary">
+                  <Activity size={18} />
+                  <h3 className="font-bold tracking-wider text-sm">ADMISSIONS FLOW</h3>
+                </div>
+                <div className="h-[250px]"><AdmissionsChart labels={Object.keys(admissions||{})} data={Object.values(admissions||{})} /></div>
+              </motion.div>
+              
+              <motion.div variants={itemVariants} className="glass-panel p-4">
+                <div className="flex items-center gap-2 mb-4 text-primary">
+                  <HeartPulse size={18} />
+                  <h3 className="font-bold tracking-wider text-sm">SEVERITY MATRIX</h3>
+                </div>
+                <div className="h-[250px]"><SeverityChart labels={Object.keys(sevCounts)} data={Object.values(sevCounts)} /></div>
+              </motion.div>
             </div>
 
-            {/* Row 3: THE SATELLITE TRACER (ENLARGED) */}
-            <motion.div className="glass-panel p-4 mb-4 hud-card-v2" variants={cardVariants}>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h3 className="hud-title-sm mb-0 text-danger"><i className="bi bi-geo-alt-fill me-2" />SATELLITE TRACER & AMBULANCE DISPATCH</h3>
-                <div className="d-flex gap-2">
-                  <span className="badge bg-danger-subtle text-danger border border-danger-subtle">LIVE TELEMETRY</span>
-                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle">S-01 LINK ACTIVE</span>
+            {/* Patient Table */}
+            <motion.div variants={itemVariants} className="glass-panel p-0 overflow-hidden">
+              <div className="p-4 border-b border-primary/20 flex justify-between items-center bg-surface/50">
+                <div className="flex items-center gap-2 text-primary">
+                  <Stethoscope size={18} />
+                  <h3 className="font-bold tracking-wider text-sm">LIVE PATIENT QUEUE</h3>
                 </div>
               </div>
-              <div style={{ minHeight: "400px" }}>
-                <AmbulanceTracker />
-              </div>
-            </motion.div>
-
-            {/* Row 4: Full Patient Table */}
-            <motion.div className="glass-panel p-4 hud-card-v2" variants={cardVariants}>
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="hud-title-sm mb-0"><i className="bi bi-table me-2" />RECENT INTAKE FLOW</h3>
-                <button className="btn btn-sm btn-outline-primary" onClick={() => onNavigate("queue")}>VIEW FULL QUEUE</button>
-              </div>
-              <div className="table-responsive" style={{ maxHeight: "450px", overflowY: "auto" }}>
-                <table className="premium-table w-100">
-                  <thead style={{ position: "sticky", top: 0, background: "rgba(15, 23, 42, 0.95)", zIndex: 1 }}>
+              <div className="overflow-x-auto max-h-[400px] custom-scrollbar">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-black/40 text-xs text-white/50 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md">
                     <tr>
-                      {["CASE ID","PATIENT","SEVERITY","DEPT","BED","DOCTOR","STATUS"].map(h => <th key={h}>{h}</th>)}
+                      <th className="px-6 py-4">ID</th>
+                      <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Severity</th>
+                      <th className="px-6 py-4">Dept</th>
+                      <th className="px-6 py-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {active.length === 0 ? (
-                      <tr><td colSpan={7} className="text-center py-4 opacity-50">NO ACTIVE CASES</td></tr>
-                    ) : (
-                      active.map(p => (
-                        <tr key={p.id}>
-                          <td className="fw-bold">{p.id}</td>
-                          <td>{p.name}</td>
-                          <td><span className={`badge-severity ${SEVERITY_CLS[p.severity] || 'severity-moderate'}`}>{p.severity}</span></td>
-                          <td>{p.department}</td>
-                          <td>{p.assignedBed || '—'}</td>
-                          <td>{p.assignedDoctor || '—'}</td>
-                          <td><span className={`badge ${STATUS_CLS[p.status] || 'bg-secondary'}`} style={{fontSize: '0.65rem'}}>{p.status}</span></td>
-                        </tr>
-                      ))
-                    )}
+                  <tbody className="divide-y divide-white/5">
+                    {active.map(p => (
+                      <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-mono text-primary/70">{p.id}</td>
+                        <td className="px-6 py-4 font-bold">{p.name}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${SEVERITY_COLORS[p.severity] || SEVERITY_COLORS.Medium}`}>
+                            {p.severity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-white/70">{p.department}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${STATUS_COLORS[p.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                            {p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </motion.div>
 
-            {/* Row 5: Infrastructure & Logistics (NEW FEATURES) */}
-            <motion.div className="row g-4 mt-1" variants={containerVariants}>
-              <div className="col-md-4">
-                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
-                  <h3 className="hud-title-sm mb-3"><i className="bi bi-fan me-2" />BIOSAFETY & VENTILATION</h3>
-                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Pathogen Filter Capacity</span><span className="text-success">99.9%</span></div>
-                  <div className="progress mb-3" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-success" style={{ width: "100%" }}/></div>
-                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">ICU Negative Air Flow</span><span className="text-info">Optimal</span></div>
-                  <div className="progress" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-info" style={{ width: "85%" }}/></div>
-                </motion.div>
-              </div>
-              <div className="col-md-4">
-                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
-                  <h3 className="hud-title-sm mb-3"><i className="bi bi-lightning-charge-fill me-2" />LIFE SUPPORT POWER</h3>
-                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Backup Power Grid</span><span className="text-primary" style={{ textShadow: "0 0 5px #0ea5e9" }}>{isCalibrating ? "RECONFIGURING" : "STABLE"}</span></div>
-                  <div className="progress mb-3" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-primary progress-bar-striped progress-bar-animated" style={{ width: `${reactorPower}%` }}/></div>
-                  <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">Oxygen Concentrators</span><span className="text-warning">STANDBY READY</span></div>
-                  <div className="progress" style={{ height: 2, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-warning" style={{ width: "100%" }}/></div>
-                </motion.div>
-              </div>
-              <div className="col-md-4">
-                <motion.div className="glass-panel p-3 hud-card-v2 h-100" whileHover={{ scale: 1.02 }}>
-                  <h3 className="hud-title-sm mb-3"><i className="bi bi-shield-lock-fill me-2" />HIPAA EHR SECURITY</h3>
-                  <div className="x-small text-muted mb-2">Network Encryption: <span className="text-success fw-bold">AES-1024</span></div>
-                  <div className="x-small text-muted mb-2">EHR Record Breaches: <span className="text-success fw-bold">0 DETECTED</span></div>
-                  <div className="p-2 mt-2 rounded" style={{ border: `1px solid ${isPurging ? "rgba(244, 63, 94, 0.5)" : "rgba(16,185,129,0.3)"}`, background: isPurging ? "rgba(244, 63, 94, 0.1)" : "rgba(16,185,129,0.05)" }}>
-                     <div className="x-small text-center fw-bold" style={{ color: isPurging ? "#f43f5e" : "#10b981", animation: "blink 1.5s infinite", textShadow: `0 0 5px ${isPurging ? "#f43f5e" : "#10b981"}` }}>{securityStatus}</div>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* ── Sidebar Column ── */}
-          <div className="col-xl-3">
-            <motion.div className="glass-panel p-4 mb-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-4"><i className="bi bi-bar-chart me-2" />DEPT LOAD</h3>
-              <div style={{ height: 250 }}><DepartmentChart /></div>
-            </motion.div>
-
-            <motion.div className="glass-panel p-4 mb-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-4"><i className="bi bi-circle-square me-2" />BED INVENTORY</h3>
-              <div style={{ height: 250 }}><BedOccupancyChart /></div>
-            </motion.div>
-
-            <motion.div className="glass-panel p-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-4 text-warning"><i className="bi bi-box-seam-fill me-2" />RESOURCE LOGISTICS</h3>
-              {INVENTORY.map(item => (
-                <div key={item.item} className="mb-3">
-                  <div className="d-flex justify-content-between x-small fw-bold mb-1">
-                    <span>{item.item}</span>
-                    <span style={{ color: item.level < 20 ? "#f43f5e" : item.level < 40 ? "#f59e0b" : "#10b981" }}>{item.level}%</span>
-                  </div>
-                  <div className="progress" style={{ height: 4, background: "rgba(255,255,255,0.05)" }}>
-                    <div className="progress-bar" style={{ width: `${item.level}%`, background: item.level < 20 ? "#f43f5e" : item.level < 40 ? "#f59e0b" : "#10b981" }} />
-                  </div>
+            {/* Active Operations Table */}
+            <motion.div variants={itemVariants} className="glass-panel p-0 overflow-hidden mt-4">
+              <div className="p-4 border-b border-warning/20 flex justify-between items-center bg-surface/50">
+                <div className="flex items-center gap-2 text-warning">
+                  <Activity size={18} />
+                  <h3 className="font-bold tracking-wider text-sm">ACTIVE OPERATIONS QUEUE</h3>
                 </div>
-              ))}
-              <div className="alert-panel mt-3">
-                <div className="alert-header">LOGISTICS ALERT</div>
-                <div className="alert-body">Monitoring depletion rates...</div>
+              </div>
+              <div className="overflow-x-auto max-h-[400px] custom-scrollbar">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-black/40 text-xs text-white/50 uppercase tracking-widest sticky top-0 z-10 backdrop-blur-md">
+                    <tr>
+                      <th className="px-6 py-4">ID</th>
+                      <th className="px-6 py-4">Type</th>
+                      <th className="px-6 py-4">Patient</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {pendingOperations.length === 0 ? (
+                      <tr><td colSpan={5} className="px-6 py-4 text-center text-white/50">No active operations.</td></tr>
+                    ) : pendingOperations.map(op => (
+                      <tr key={op.operation_id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-mono text-warning/70">OP-{op.operation_id}</td>
+                        <td className="px-6 py-4 font-bold">{op.operation_type.replace('_', ' ').toUpperCase()}</td>
+                        <td className="px-6 py-4 text-white/80">{op.patient_name}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${op.status === 'Submitted' ? 'bg-accent/20 text-accent' : 'bg-warning/20 text-warning'}`}>
+                            {op.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button onClick={() => updateOperation(op.operation_id, "Approved")} className="px-3 py-1 bg-success/20 text-success text-[10px] font-bold rounded border border-success/30 hover:bg-success/30">APPROVE</button>
+                            <button onClick={() => updateOperation(op.operation_id, "Rejected")} className="px-3 py-1 bg-accent/20 text-accent text-[10px] font-bold rounded border border-accent/30 hover:bg-accent/30">REJECT</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </motion.div>
 
-            <div className="mt-4">
-              <AIHologramAssistant />
-            </div>
-
-            {/* NEW FEATURE: Drone Network & Fatigue */}
-            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-3"><i className="bi bi-send-fill me-2" />TRAUMA DRONE SUPPLY</h3>
-              <div className="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
-                 <div className="x-small"><i className="bi bi-box-seam me-2 text-info" style={{ textShadow: "0 0 5px #0ea5e9" }}/>Drone Unit D-04</div>
-                 <span className="badge x-small" style={{ 
-                   background: drone4Status === "IN TRANSIT" ? "#0ea5e9" : drone4Status === "DISPATCHED" ? "#f59e0b" : "#10b981", 
-                   boxShadow: `0 0 10px ${drone4Status === "IN TRANSIT" ? "#0ea5e9" : drone4Status === "DISPATCHED" ? "#f59e0b" : "#10b981"}aa`
-                 }}>{drone4Status}</span>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style={{ background: "rgba(255,255,255,0.03)" }}>
-                 <div className="x-small"><i className="bi bi-box-seam me-2 text-warning"/>Drone Unit D-11</div>
-                 <span className="badge bg-warning text-dark x-small">CHARGING</span>
-              </div>
-            </motion.div>
-
-            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-3"><i className="bi bi-person-lines-fill me-2" />AI CLINICAL STAFF FATIGUE</h3>
-              <div className="d-flex justify-content-between x-small mb-1"><span className="text-muted">ER Trauma Team Alpha</span><span className="text-danger fw-bold" style={{ textShadow: "0 0 5px #f43f5e" }}>88%</span></div>
-              <div className="progress mb-2" style={{ height: 3, background: "rgba(255,255,255,0.05)" }}><div className="progress-bar bg-danger" style={{ width: "88%" }}/></div>
-              <div className="x-small text-muted" style={{ fontSize: "0.6rem" }}>Recommendation: Shift rotation in 45m</div>
-            </motion.div>
-
-            {/* ── NEW FEATURE: TACTICAL OPERATIONS DECK ── */}
-            <motion.div className="glass-panel p-4 mt-4 hud-card-v2" variants={cardVariants}>
-              <h3 className="hud-title-sm mb-3"><i className="bi bi-cpu-fill me-2" />CLINICAL OPERATIONS PANEL</h3>
-              <div className="d-flex flex-column gap-2">
-                <button className="btn btn-sm btn-outline-primary text-start d-flex justify-content-between align-items-center" onClick={handleCalibrateReactor} disabled={isCalibrating}>
-                  <span><i className="bi bi-lightning-charge me-2"/>RECONFIG LIFE SUPPORT</span>
-                  {isCalibrating && <span className="spinner-border spinner-border-sm" role="status"/>}
-                </button>
-                <button className="btn btn-sm btn-outline-danger text-start" onClick={handlePurgeDefenses} disabled={isPurging}>
-                  <i className="bi bi-shield-slash me-2"/>SANITIZE HIPAA RECORDS
-                </button>
-                <button className="btn btn-sm btn-outline-info text-start" onClick={handleDispatchDrone}>
-                  <i className="bi bi-airplane-engines me-2"/>DISPATCH MED-DELIVERY DRONE
-                </button>
-                <button className="btn btn-sm btn-outline-warning text-start" onClick={handleBroadcastAlert}>
-                  <i className="bi bi-broadcast me-2"/>PAGE EMERGENCY CODE
-                </button>
-              </div>
-            </motion.div>
           </div>
-        </motion.div>
-      </div>
 
-      <style>{`
-        .admin-ops-root { min-height: 100vh; color: #fff; font-family: 'Outfit'; overflow-x: hidden; }
-        .admin-hud-top { position: fixed; top: 0; left: 0; right: 0; height: 36px; background: rgba(2, 6, 23, 0.9); border-bottom: 1px solid rgba(14, 165, 233, 0.3); z-index: 1000; }
-        .hud-ticker { display: flex; align-items: center; height: 100%; }
-        .ticker-tag { background: #0ea5e9; color: #fff; font-weight: 800; font-size: 0.65rem; padding: 0 15px; height: 100%; display: flex; align-items: center; letter-spacing: 1px; }
-        .ticker-text { display: flex; animation: ticker 30s linear infinite; }
-        .ticker-text span { color: #94a3b8; font-size: 0.7rem; font-weight: 700; margin-left: 50px; white-space: nowrap; }
-        @keyframes ticker { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+          {/* Right Column - Subsystems */}
+          <div className="lg:col-span-4 space-y-4">
+            
+            <motion.div variants={itemVariants} className="glass-panel p-4">
+              <h3 className="text-sm font-bold text-warning flex items-center gap-2 tracking-wider mb-5">
+                <Zap size={18} /> RESOURCE DEPLETION
+              </h3>
+              <div className="space-y-4">
+                {INVENTORY.map(item => (
+                  <div key={item.item}>
+                    <div className="flex justify-between text-xs mb-1.5 font-bold">
+                      <span className="text-white/80">{item.item}</span>
+                      <span className={item.level < 20 ? 'text-accent' : item.level < 40 ? 'text-warning' : 'text-success'}>{item.level}%</span>
+                    </div>
+                    <div className="h-1.5 bg-black/50 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${item.level < 20 ? 'bg-accent shadow-neon-red' : item.level < 40 ? 'bg-warning' : 'bg-success'}`} 
+                        style={{ width: `${item.level}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
 
-        .command-header { border-left: 5px solid #0ea5e9; background: rgba(15, 23, 42, 0.6) !important; }
-        .command-title { font-weight: 900; letter-spacing: -1px; font-size: 2rem; }
-        .command-subtitle { font-size: 0.7rem; font-weight: 700; color: #64748b; letter-spacing: 2px; }
-        .cmd-stat { font-size: 0.8rem; font-weight: 800; }
-        .letter-spacing-2 { letter-spacing: 2px; }
+            <motion.div variants={itemVariants} className="glass-panel p-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2 tracking-wider mb-4">
+                <ShieldAlert size={18} /> LIFE SUPPORT GRID
+              </h3>
+              <div className="p-4 rounded-lg bg-black/40 border border-primary/20">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs text-white/50 uppercase">Core Power</span>
+                  <span className="text-lg font-display text-primary">{reactorPower}%</span>
+                </div>
+                <div className="h-2 bg-black/60 rounded-full overflow-hidden mb-4">
+                  <div className="h-full bg-primary animate-pulse shadow-neon" style={{ width: `${reactorPower}%` }} />
+                </div>
+                <button 
+                  onClick={handleCalibrateReactor}
+                  disabled={isCalibrating}
+                  className="w-full py-2 bg-primary/10 hover:bg-primary/20 border border-primary/50 text-primary text-xs font-bold rounded tracking-widest transition-colors disabled:opacity-50"
+                >
+                  {isCalibrating ? 'RECALIBRATING...' : 'RECALIBRATE CORE'}
+                </button>
+              </div>
+            </motion.div>
 
-        .hud-card-v2 { border-radius: 20px; background: rgba(15, 23, 42, 0.5) !important; border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; }
-        .hud-card-v2:hover { border-color: rgba(14, 165, 233, 0.3); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(14, 165, 233, 0.15); }
-        .hud-title-sm { font-size: 0.8rem; font-weight: 800; letter-spacing: 1px; color: #0ea5e9; }
+            <motion.div variants={itemVariants} className="glass-panel p-0 overflow-hidden h-[300px]">
+              <div className="p-4 border-b border-primary/20 bg-surface/80 absolute top-0 w-full z-10 backdrop-blur-md">
+                <h3 className="text-sm font-bold text-primary tracking-wider">AMBULANCE TRACKING</h3>
+              </div>
+              <div className="w-full h-full pt-14 opacity-80">
+                <AmbulanceTracker />
+              </div>
+            </motion.div>
 
-        .btn-cmd { border: none; background: rgba(255,255,255,0.05); color: #fff; font-weight: 800; font-size: 0.7rem; padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-cmd-danger { background: #f43f5e; border-color: #f43f5e; }
-        .btn-cmd-primary { background: #0ea5e9; border-color: #0ea5e9; }
-
-        .alert-panel { background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); padding: 12px; border-radius: 12px; }
-        .alert-header { font-size: 0.65rem; font-weight: 900; color: #0ea5e9; margin-bottom: 2px; }
-        .alert-body { font-size: 0.65rem; color: #94a3b8; font-weight: 600; }
-        .x-small { font-size: 0.65rem; }
-      `}</style>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

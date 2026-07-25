@@ -1,5 +1,13 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+import os
+
+# Load environment variables from .env if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Import blueprints
 from routes.auth_routes import auth_bp
@@ -8,6 +16,11 @@ from routes.doctor_routes import doctor_bp
 from routes.bed_routes import bed_bp
 from routes.analytics_routes import analytics_bp
 from routes.engine_routes import engine_bp
+from routes.ambulance_routes import ambulance_bp
+from routes.clinical_routes import clinical_bp
+from routes.operations_routes import operations_bp
+from routes.notification_routes import notification_bp
+from routes.ai_routes import ai_bp
 
 def create_app():
     app = Flask(__name__)
@@ -22,6 +35,11 @@ def create_app():
     app.register_blueprint(bed_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(engine_bp)
+    app.register_blueprint(ambulance_bp)
+    app.register_blueprint(clinical_bp)
+    app.register_blueprint(operations_bp)
+    app.register_blueprint(notification_bp)
+    app.register_blueprint(ai_bp)
     
     # Global error handler
     @app.errorhandler(Exception)

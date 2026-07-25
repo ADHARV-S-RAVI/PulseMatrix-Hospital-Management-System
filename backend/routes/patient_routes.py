@@ -157,3 +157,70 @@ def search_patient():
     query = "SELECT * FROM patients WHERE name LIKE ? ORDER BY severity_score DESC"
     patients = query_db(query, (f"%{name}%",))
     return jsonify(patients), 200
+
+# ---------------------------------------------------------
+# NEW INTEGRATION ROUTES: Assignments & Transfers
+# ---------------------------------------------------------
+
+@patient_bp.route('/patient/<int:patient_id>/assign_doctor', methods=['POST'])
+def assign_doctor(patient_id):
+    data = request.get_json()
+    doctor_id = data.get('doctor_id')
+    assigned_by = data.get('assigned_by', 'ADMIN')
+
+    if not doctor_id:
+        return jsonify({"error": "Missing doctor_id"}), 400
+
+    # End current primary assignment if exists
+    execute_db("UPDATE doctor_assignments SET status = 'TRANSFERRED', ended_at = CURRENT_TIMESTAMP WHERE patient_id = ? AND status = 'ACTIVE' AND assignment_type = 'PRIMARY'", (patient_id,))
+
+    # Create new assignment
+    execute_db("""
+        INSERT INTO doctor_assignments (patient_id, doctor_id, assignment_type, status, assigned_by)
+        VALUES (?, ?, 'PRIMARY', 'ACTIVE', ?)
+    """, (patient_id, doctor_id, assigned_by))
+
+    # Update canonical patient record
+    execute_db("UPDATE patients SET assigned_doctor_id = ? WHERE patient_id = ?", (doctor_id, patient_id))
+
+    # Add notification for the doctor
+    execute_db("""
+        INSERT INTO notifications (doctor_id, patient_id, type, title, message, priority)
+        VALUES (?, ?, 'ASSIGNMENT', 'New Patient Assigned', 'You have been assigned a new patient.', 'High')
+    """, (doctor_id, patient_id))
+
+    return jsonify({"success": True, "message": "Doctor assigned successfully"}), 200
+
+@patient_bp.route('/patient/<int:patient_id>/assign_bed', methods=['POST'])
+def assign_bed(patient_id):
+    data = request.get_json()
+    bed_id = data.get('bed_id')
+
+    if not bed_id:
+        return jsonify({"error": "Missing bed_id"}), 400
+
+    # End current bed assignment if exists
+    execute_db("UPDATE bed_assignments SET status = 'TRANSFERRED', ended_at = CURRENT_TIMESTAMP WHERE patient_id = ? AND status = 'OCCUPIED'", (patient_id,))
+
+    # Old bed becomes Available
+    old_bed = query_db("SELECT assigned_bed_id FROM patients WHERE patient_id = ?", (patient_id,), one=True)
+    if old_bed and old_bed['assigned_bed_id']:
+        execute_db("UPDATE beds SET status = 'Available' WHERE bed_id = ?", (old_bed['assigned_bed_id'],))
+
+    # New bed assignment
+    execute_db("""
+        INSERT INTO bed_assignments (patient_id, bed_id, status)
+        VALUES (?, ?, 'OCCUPIED')
+    """, (patient_id, bed_id))
+
+    # Update patient record & new bed status
+    execute_db("UPDATE patients SET assigned_bed_id = ? WHERE patient_id = ?", (bed_id, patient_id))
+    execute_db("UPDATE beds SET status = 'Occupied' WHERE bed_id = ?", (bed_id,))
+
+    return jsonify({"success": True, "message": "Bed assigned successfully"}), 200
+
+@patient_bp.route('/patient/<int:patient_id>/transfer_bed', methods=['POST'])
+def transfer_bed(patient_id):
+    # Same logic as assign_bed for now, but semantically indicates a transfer
+    return assign_bed(patient_id)
+

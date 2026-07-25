@@ -1,5 +1,6 @@
-import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bot, X, Zap, Cpu } from 'lucide-react';
 
 export default function AIHologramAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,29 +19,28 @@ export default function AIHologramAssistant() {
   };
 
   return (
-    <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1000 }}>
-      {/* The Holographic Trigger / Avatar */}
+    <div className="fixed bottom-8 right-8 z-[100]">
+      {/* Hologram Trigger */}
       <motion.div
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={handleInteraction}
-        style={{ cursor: "pointer", position: "relative" }}
+        className="relative cursor-pointer group"
       >
-        <div style={{
-          width: "70px", height: "70px", 
-          background: "radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, transparent 70%)",
-          borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-          border: "2px solid rgba(14, 165, 233, 0.3)",
-          boxShadow: "0 0 20px rgba(14, 165, 233, 0.5)"
-        }}>
-          <i className="bi bi-person-bounding-box" style={{ fontSize: "1.8rem", color: "#0ea5e9" }} />
+        <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center shadow-[0_0_20px_rgba(0,229,255,0.3)] group-hover:shadow-[0_0_30px_rgba(0,229,255,0.6)] transition-shadow">
+          <Bot size={32} className="text-primary group-hover:animate-pulse" />
         </div>
         
         {/* Floating Rings */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          style={{ position: "absolute", inset: -5, border: "1px dashed rgba(14, 165, 233, 0.4)", borderRadius: "50%" }}
+          className="absolute -inset-1 border border-dashed border-primary/40 rounded-full"
+        />
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          className="absolute -inset-2 border border-dotted border-blue-500/30 rounded-full"
         />
       </motion.div>
 
@@ -51,52 +51,43 @@ export default function AIHologramAssistant() {
             initial={{ opacity: 0, x: 20, scale: 0.8 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 20, scale: 0.8 }}
-            style={{
-              position: "absolute", bottom: "90px", right: "0", width: "300px",
-              background: "rgba(15, 23, 42, 0.8)", backdropFilter: "blur(12px)",
-              border: "1px solid rgba(14, 165, 233, 0.3)", borderRadius: "16px",
-              padding: "20px", color: "white", boxShadow: "0 10px 40px rgba(0,0,0,0.5)"
-            }}
+            className="absolute bottom-24 right-0 w-80 glass-panel border-primary/50 shadow-neon p-5 overflow-hidden"
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ width: "8px", height: "8px", background: "#0ea5e9", borderRadius: "50%", animation: "pulse 1s infinite" }} />
-                <span style={{ fontSize: "0.7rem", fontWeight: "bold", letterSpacing: "1px", color: "#0ea5e9" }}>AI ASSISTANT</span>
+            {/* Scanline Effect */}
+            <div className="absolute inset-0 pointer-events-none bg-[repeating-linear-gradient(transparent,transparent_2px,rgba(0,229,255,0.03)_3px,rgba(0,229,255,0.03)_3px)] z-0" />
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-center mb-4 border-b border-primary/20 pb-2">
+                <div className="flex items-center gap-2 text-primary font-bold tracking-widest text-xs">
+                  <Cpu size={14} className="animate-pulse" />
+                  AI COPILOT
+                </div>
+                <button onClick={() => setIsOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
               </div>
-              <i className="bi bi-x-lg" style={{ cursor: "pointer", fontSize: "0.8rem" }} onClick={() => setIsOpen(false)} />
+
+              <motion.p 
+                key={activeMessage}
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }}
+                className="text-sm text-white/90 font-mono mb-6 leading-relaxed"
+              >
+                "{activeMessage}"
+              </motion.p>
+
+              <div className="flex gap-3">
+                <button className="flex-1 bg-primary/20 hover:bg-primary/40 border border-primary text-primary hover:text-white py-1.5 rounded transition-colors text-xs font-bold tracking-wider flex items-center justify-center gap-1">
+                  <Zap size={12} /> EXECUTE
+                </button>
+                <button onClick={() => setIsOpen(false)} className="flex-1 bg-transparent border border-white/20 text-white/50 hover:bg-white/5 hover:text-white py-1.5 rounded transition-colors text-xs tracking-wider">
+                  DISMISS
+                </button>
+              </div>
             </div>
-
-            <motion.p 
-              key={activeMessage}
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              style={{ fontSize: "0.85rem", lineHeight: "1.5", color: "#e2e8f0", margin: 0 }}
-            >
-              "{activeMessage}"
-            </motion.p>
-
-            <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-              <button style={{ flex: 1, background: "rgba(14, 165, 233, 0.2)", border: "1px solid #0ea5e9", color: "#0ea5e9", padding: "6px", borderRadius: "6px", fontSize: "0.7rem" }}>
-                Execute Sync
-              </button>
-              <button style={{ flex: 1, background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8", padding: "6px", borderRadius: "6px", fontSize: "0.7rem" }}>
-                Dismiss
-              </button>
-            </div>
-
-            {/* Scanline effect */}
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "repeating-linear-gradient(transparent, transparent 2px, rgba(14, 165, 233, 0.05) 3px, rgba(14, 165, 233, 0.05) 3px)", borderRadius: "16px" }} />
           </motion.div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.3; }
-          100% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

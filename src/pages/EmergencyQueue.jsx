@@ -9,7 +9,7 @@ const DEPTS = ["All","Trauma","Cardiology","Neurology","Pediatrics","General Sur
 const SEVS  = ["All","Critical","High","Medium","Low"];
 
 export default function EmergencyQueue({ addToast }) {
-  const { patients, updatePatient, dischargePatient } = useApp();
+  const { patients, doctors, beds, updatePatient, dischargePatient, assignDoctorToPatient, assignBedToPatient } = useApp();
   const [dept, setDept] = useState("All");
   const [sev,  setSev]  = useState("All");
   const [editId, setEditId] = useState(null);
@@ -29,7 +29,12 @@ export default function EmergencyQueue({ addToast }) {
 
   const openEdit = (p) => {
     setEditId(p.id);
-    setEditFields({ severity: p.severity, status: p.status });
+    setEditFields({ 
+      severity: p.severity, 
+      status: p.status,
+      assignedDoctor: p.assignedDoctor || "",
+      assignedBed: p.assignedBed || ""
+    });
   };
 
   const handleSave = async () => {
@@ -46,6 +51,18 @@ export default function EmergencyQueue({ addToast }) {
       const numericId = pat.numericId || (pat.id.includes("-") ? parseInt(pat.id.split("-").pop(), 10) : null);
       if (numericId && !isNaN(numericId)) {
         await updatePatientAPI(numericId, { severity_score: score });
+        
+        // Handle doctor assignment if changed
+        if (editFields.assignedDoctor && editFields.assignedDoctor !== pat.assignedDoctor) {
+            const doc = doctors.find(d => d.name === editFields.assignedDoctor);
+            if (doc) await assignDoctorToPatient(numericId, doc.numericId);
+        }
+
+        // Handle bed assignment if changed
+        if (editFields.assignedBed && editFields.assignedBed !== pat.assignedBed) {
+            const bed = beds.find(b => b.id === editFields.assignedBed);
+            if (bed) await assignBedToPatient(numericId, bed.numericId);
+        }
       }
     } catch (err) {
       console.warn("Backend update skipped/offline", err);
@@ -107,6 +124,22 @@ export default function EmergencyQueue({ addToast }) {
               <label className="form-label fw-medium small">Progress Phase</label>
               <select className="form-select" value={editFields.status} onChange={e => setEditFields(f => ({ ...f, status: e.target.value }))}>
                 {["Newly Admitted","In Treatment","Awaiting Scans","Stable","Recovering","Discharge Ready"].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="form-label fw-medium small">Assign Doctor</label>
+              <select className="form-select" value={editFields.assignedDoctor} onChange={e => setEditFields(f => ({ ...f, assignedDoctor: e.target.value }))}>
+                <option value="">-- Select Doctor --</option>
+                {doctors.map(d => <option key={d.id} value={d.name}>{d.name} ({d.specialty})</option>)}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="form-label fw-medium small">Assign Bed</label>
+              <select className="form-select" value={editFields.assignedBed} onChange={e => setEditFields(f => ({ ...f, assignedBed: e.target.value }))}>
+                <option value="">-- Select Bed --</option>
+                {beds.filter(b => b.status === "Available" || b.id === editFields.assignedBed).map(b => (
+                  <option key={b.id} value={b.id}>{b.id} ({b.type})</option>
+                ))}
               </select>
             </div>
             <div className="d-flex gap-2 justify-content-end">

@@ -1,1 +1,71 @@
-body { margin: 0; }
+@import "tailwindcss";
+
+@theme {
+  --color-background: #020817; /* Deep Navy */
+  --color-surface: #0f172a; /* Medical Blue Surface */
+  --color-primary: #00E5FF;
+  --color-secondary: #0284c7;
+  --color-accent: #e11d48; /* Less bright red */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-hologram: rgba(0, 229, 255, 0.05);
+  --font-display: "Inter", sans-serif;
+  --shadow-neon: 0 0 4px rgba(0, 229, 255, 0.15), 0 0 10px rgba(0, 229, 255, 0.1);
+  --shadow-neon-red: 0 0 4px rgba(225, 29, 72, 0.15), 0 0 10px rgba(225, 29, 72, 0.1);
+  --shadow-glass: 0 4px 16px 0 rgba(0, 0, 0, 0.3);
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  
+  @keyframes glow {
+    0% { box-shadow: 0 0 2px rgba(0, 229, 255, 0.1); }
+    100% { box-shadow: 0 0 8px rgba(0, 229, 255, 0.3); }
+  }
+}
+
+.dark-neon-theme {
+  @apply bg-background text-white font-sans overflow-x-hidden;
+}
+
+@utility glass-panel {
+  @apply bg-surface/80 backdrop-blur-md border border-primary/20 rounded-xl shadow-glass;
+}
+
+@utility glass-panel-neon {
+  @apply bg-surface/80 backdrop-blur-md border rounded-xl shadow-neon border-primary/50;
+}
+
+@utility glass-panel-danger {
+  @apply bg-surface/80 backdrop-blur-md border border-accent/50 rounded-xl shadow-neon-red;
+}
+
+@utility text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500;
+}
+
+@utility btn-primary {
+  @apply px-6 py-2 rounded-lg bg-primary/20 border border-primary text-primary hover:bg-primary/40 hover:shadow-neon transition-all duration-300;
+}
+
+@utility btn-danger {
+  @apply px-6 py-2 rounded-lg bg-accent/20 border border-accent text-accent hover:bg-accent/40 hover:shadow-neon-red transition-all duration-300;
+}
+
+@utility input-field {
+  @apply w-full bg-surface border border-primary/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary focus:shadow-neon transition-all duration-300;
+}
+
+/* Custom Scrollbar for sleek UI scoped to dark-neon-theme */
+.dark-neon-theme ::-webkit-scrollbar {
+  width: 8px;
+}
+.dark-neon-theme ::-webkit-scrollbar-track {
+  background: #040B16;
+}
+.dark-neon-theme ::-webkit-scrollbar-thumb {
+  background: #1C4E80;
+  border-radius: 4px;
+}
+.dark-neon-theme ::-webkit-scrollbar-thumb:hover {
+  background: #00E5FF;
+}

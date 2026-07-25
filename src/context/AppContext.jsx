@@ -12,6 +12,7 @@ export function AppProvider({ children }) {
   const [doctors, setDoctors] = useState([]);
   const [beds, setBeds] = useState([]);
   const [admissions, setAdmissions] = useState({});
+  const [operations, setOperations] = useState([]);
   const [aiPredictions, setAiPredictions] = useState([
     { id: 1, type: "Cardiac Arrest", risk: 88, trend: "up", color: "#f43f5e" },
     { id: 2, type: "Sepsis Detection", risk: 42, trend: "stable", color: "#f59e0b" },
@@ -22,11 +23,12 @@ export function AppProvider({ children }) {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [pData, dData, bData, admData] = await Promise.all([
+        const [pData, dData, bData, admData, opsData] = await Promise.all([
           api.getPatients().catch(() => []),
           api.getDoctors().catch(() => []),
           api.getBeds().catch(() => []),
-          api.getAdmissionTrends().catch(() => ({ labels: [], values: [] }))
+          api.getAdmissionTrends().catch(() => ({ labels: [], values: [] })),
+          api.getAllOperations().catch(() => [])
         ]);
 
         const docMap = {};
@@ -82,6 +84,8 @@ export function AppProvider({ children }) {
         }
         setAdmissions(admDict);
 
+        setOperations(opsData);
+
       } catch (err) {
         console.error("Error syncing with backend APIs:", err);
       }
@@ -108,6 +112,18 @@ export function AppProvider({ children }) {
         try { await api.updatePatient(numericId, f); } catch (e) { console.error(e); }
         refresh(); 
     },
+    assignDoctorToPatient: async (patientNumericId, doctorNumericId) => {
+        try { await api.assignDoctor(patientNumericId, doctorNumericId); } catch (e) { console.error(e); }
+        refresh();
+    },
+    assignBedToPatient: async (patientNumericId, bedNumericId) => {
+        try { await api.assignBed(patientNumericId, bedNumericId); } catch (e) { console.error(e); }
+        refresh();
+    },
+    updateOperation: async (operationId, status) => {
+        try { await api.updateOperationStatus(operationId, status); } catch (e) { console.error(e); }
+        refresh();
+    },
     updateDoctorStatus: async (name, s) => { 
         const doc = doctors.find(d => d.name === name);
         if (doc) {
@@ -124,11 +140,24 @@ export function AppProvider({ children }) {
     toggleDisasterMode: () => setDisasterMode(prev => !prev),
   };
 
+  const [navCallback, setNavCallback] = useState(null);
+  const [managementRouteArg, setManagementRouteArg] = useState(null);
+
+  const setGlobalNavigate = useCallback((callback) => {
+    setNavCallback(() => callback);
+  }, []);
+
+  const navigateToManagement = useCallback((tab) => {
+    setManagementRouteArg(tab);
+    if (navCallback) navCallback('management');
+  }, [navCallback]);
+
   return (
     <AppContext.Provider value={{ 
-      patients, doctors, beds, admissions, 
+      patients, doctors, beds, admissions, operations,
       disasterMode, aiPredictions,
-      ...actions, tick 
+      ...actions, tick,
+      setGlobalNavigate, navigateToManagement, managementRouteArg
     }}>
       {children}
     </AppContext.Provider>

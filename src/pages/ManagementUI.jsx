@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { updateDoctor as updateDoctorAPI, updateBed as updateBedAPI } from "../services/api";
 
@@ -103,8 +103,14 @@ function BedCard({ bed, onStatusChange }) {
 }
 
 export default function ManagementUI({ addToast }) {
-  const { doctors, beds, updateDoctorStatus, updateBedStatus } = useApp();
-  const [tab, setTab] = useState("doctors");
+  const { doctors, beds, updateDoctorStatus, updateBedStatus, managementRouteArg } = useApp();
+  const [tab, setTab] = useState(managementRouteArg || "doctors");
+
+  useEffect(() => {
+    if (managementRouteArg) {
+      setTab(managementRouteArg);
+    }
+  }, [managementRouteArg]);
 
   const handleDocStatus = async (id, name, status) => {
     updateDoctorStatus(name, status);

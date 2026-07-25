@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { login, registerAdmin, getPatient, addPatient } from "../services/api";
+import { login, registerAdmin, getPatient, addPatient, loginDoctor, registerDoctor } from "../services/api";
 
-export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) {
+export default function LoginPage({ onLogin, prefilledRole = "admin", onBack, onHome }) {
   const { registerPatient } = useApp() || {};
   const role = prefilledRole; // role is fixed from the role selection screen
 
@@ -34,6 +34,17 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
 
   const isAdmin   = role === "admin";
   const isPatient = role === "patient";
+  const isDoctor  = role === "doctor";
+
+  // --- Doctor Login state ---
+  const [docId, setDocId] = useState("DR-001");
+  const [docPass, setDocPass] = useState("doctor");
+
+  // --- Doctor Registration state ---
+  const [regDocName, setRegDocName] = useState("");
+  const [regDocSpecialty, setRegDocSpecialty] = useState("Emergency Medicine");
+  const [regDocEmail, setRegDocEmail] = useState("");
+  const [regDocPass, setRegDocPass] = useState("");
 
   // ── Handlers ───────────────────────────────────────────────
   const handleAdminSubmit = async (e) => {
@@ -110,6 +121,60 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
     }
   };
 
+  const handleDoctorSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!docId || !docPass) {
+      setError("Please enter your Doctor Email and Password.");
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const data = await loginDoctor(docId.trim(), docPass);
+      // Pass the backend integer doctor_id as patientId so App.jsx maps it to DoctorDashboard
+      onLogin({ role: "doctor", userName: data.name, patientId: data.doctor_id });
+    } catch (err) {
+      console.warn("Backend auth failed, falling back to local", err);
+      // Check locally registered mock doctor first
+      const localEmail = localStorage.getItem("pm_doctor_email");
+      const localPass  = localStorage.getItem("pm_doctor_pass");
+      const localName  = localStorage.getItem("pm_doctor_name");
+
+      if (localEmail && docId.trim() === localEmail && docPass === localPass) {
+        onLogin({ role: "doctor", userName: localName, patientId: 1 }); // fallback ID
+      } else {
+        setError(err.message || "Invalid credentials. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDoctorRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!regDocName || !regDocEmail || !regDocPass) {
+      setError("Please fill in all required doctor fields.");
+      return;
+    }
+    setLoading(true);
+    
+    try {
+      const data = await registerDoctor(regDocEmail.trim(), regDocPass, regDocName.trim(), regDocSpecialty);
+      // Persist locally so login works across sessions reliably
+      localStorage.setItem("pm_doctor_email", regDocEmail.trim());
+      localStorage.setItem("pm_doctor_pass", regDocPass);
+      localStorage.setItem("pm_doctor_name", regDocName.trim());
+      
+      onLogin({ role: "doctor", userName: regDocName.trim(), patientId: data.doctor_id });
+    } catch (err) {
+      setError(err.message || "Failed to register doctor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePatientRegisterSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -165,22 +230,32 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
       <div className="login-blob blob-2" />
       <div className="login-blob blob-3" />
 
-      <div className="login-card" style={{ maxWidth: isRegistering ? 520 : 460 }}>
-        {/* Back button */}
-        <button
-          className="login-back-btn"
-          onClick={() => {
-            if (isRegistering) {
-              setIsRegistering(false);
-              setError("");
-            } else {
-              onBack();
-            }
-          }}
-          type="button"
-        >
-          <i className="bi bi-arrow-left me-1" /> {isRegistering ? "Back to Login" : "Change Role"}
-        </button>
+      <div className="login-card position-relative" style={{ maxWidth: isRegistering ? 520 : 460 }}>
+        {/* Navigation Buttons */}
+        <div className="d-flex justify-content-between mb-2">
+          <button
+            className="login-back-btn"
+            onClick={() => {
+              if (isRegistering) {
+                setIsRegistering(false);
+                setError("");
+              } else {
+                onBack();
+              }
+            }}
+            type="button"
+          >
+            <i className="bi bi-arrow-left me-1" /> {isRegistering ? "Back to Login" : "Change Role"}
+          </button>
+          
+          <button
+            className="login-back-btn"
+            onClick={onHome}
+            type="button"
+          >
+            <i className="bi bi-house-door me-1" /> Home
+          </button>
+        </div>
 
         {/* Brand */}
         <div className="login-brand text-center mb-3">
@@ -191,7 +266,7 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
             Pulse_Matrix
           </h2>
           <p className="text-secondary small mb-0">
-            {isAdmin ? "Administrator Command Auth Portal" : "Patient Case Access Portal"}
+            {isAdmin ? "Administrator Command Auth Portal" : isDoctor ? "Doctor Clinical Access Portal" : "Patient Case Access Portal"}
           </p>
         </div>
 
@@ -199,14 +274,14 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
         <div className="d-flex justify-content-center gap-2 mb-4 bg-dark bg-opacity-25 p-1 rounded-3 border border-secondary border-opacity-25">
           <button
             type="button"
-            className={`btn btn-sm w-50 rounded-2 fw-semibold ${!isRegistering ? (isAdmin ? "btn-primary" : "btn-success") : "btn-link text-secondary text-decoration-none"}`}
+            className={`btn btn-sm w-50 rounded-2 fw-semibold ${!isRegistering ? (isAdmin || isDoctor ? "btn-primary" : "btn-success") : "btn-link text-secondary text-decoration-none"}`}
             onClick={() => { setIsRegistering(false); setError(""); }}
           >
             Sign In
           </button>
           <button
             type="button"
-            className={`btn btn-sm w-50 rounded-2 fw-semibold ${isRegistering ? (isAdmin ? "btn-primary" : "btn-success") : "btn-link text-secondary text-decoration-none"}`}
+            className={`btn btn-sm w-50 rounded-2 fw-semibold ${isRegistering ? (isAdmin || isDoctor ? "btn-primary" : "btn-success") : "btn-link text-secondary text-decoration-none"}`}
             onClick={() => { setIsRegistering(true); setError(""); }}
           >
             Register New
@@ -466,6 +541,128 @@ export default function LoginPage({ onLogin, prefilledRole = "admin", onBack }) 
               {loading
                 ? <><span className="spinner-border spinner-border-sm" /> Generating Case File...</>
                 : <><i className="bi bi-file-earmark-medical-fill" /> Generate Case & Enter Portal</>
+              }
+            </button>
+          </form>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════
+           DOCTOR VIEWS
+           ═══════════════════════════════════════════════════════════ */}
+        {isDoctor && !isRegistering && (
+          <form onSubmit={handleDoctorSubmit}>
+            <div className="mb-3 text-start">
+              <label className="form-label small text-light fw-medium">Doctor ID</label>
+              <div className="input-group">
+                <span className="input-group-text login-input-prefix"><i className="bi bi-person-badge" /></span>
+                <input
+                  type="text"
+                  className="form-control login-input"
+                  value={docId}
+                  onChange={e => setDocId(e.target.value)}
+                  placeholder="DR-001"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mb-4 text-start">
+              <label className="form-label small text-light fw-medium">Security PIN / Password</label>
+              <div className="input-group">
+                <span className="input-group-text login-input-prefix"><i className="bi bi-shield-lock-fill" /></span>
+                <input
+                  type="password"
+                  className="form-control login-input"
+                  value={docPass}
+                  onChange={e => setDocPass(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="form-text text-muted mt-1" style={{ fontSize: "0.75rem" }}>
+                Demo credentials pre-filled.
+              </div>
+            </div>
+            {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
+            <button
+              type="submit"
+              className="btn btn-primary-gradient w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+              disabled={loading}
+            >
+              {loading
+                ? <><span className="spinner-border spinner-border-sm" /> Authenticating...</>
+                : <><i className="bi bi-stethoscope" /> Access Clinical Portal</>
+              }
+            </button>
+          </form>
+        )}
+
+        {isDoctor && isRegistering && (
+          <form onSubmit={handleDoctorRegisterSubmit}>
+            <div className="mb-3 text-start">
+              <label className="form-label small text-light fw-medium">Full Name</label>
+              <div className="input-group">
+                <span className="input-group-text login-input-prefix"><i className="bi bi-person-vcard" /></span>
+                <input
+                  type="text"
+                  className="form-control login-input"
+                  value={regDocName}
+                  onChange={e => setRegDocName(e.target.value)}
+                  placeholder="Dr. Sarah Jenkins"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mb-3 text-start">
+              <label className="form-label small text-light fw-medium">Specialization</label>
+              <select
+                className="form-select login-input"
+                value={regDocSpecialty}
+                onChange={e => setRegDocSpecialty(e.target.value)}
+              >
+                <option value="Emergency Medicine">Emergency Medicine</option>
+                <option value="Cardiology">Cardiology</option>
+                <option value="Neurology">Neurology</option>
+                <option value="Surgery">Surgery</option>
+                <option value="Pediatrics">Pediatrics</option>
+              </select>
+            </div>
+            <div className="mb-3 text-start">
+              <label className="form-label small text-light fw-medium">Official Work Email / ID</label>
+              <div className="input-group">
+                <span className="input-group-text login-input-prefix"><i className="bi bi-envelope" /></span>
+                <input
+                  type="text"
+                  className="form-control login-input"
+                  value={regDocEmail}
+                  onChange={e => setRegDocEmail(e.target.value)}
+                  placeholder="sarah@pulsematrix.hospital"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mb-4 text-start">
+              <label className="form-label small text-light fw-medium">Create Secure PIN / Password</label>
+              <div className="input-group">
+                <span className="input-group-text login-input-prefix"><i className="bi bi-key" /></span>
+                <input
+                  type="password"
+                  className="form-control login-input"
+                  value={regDocPass}
+                  onChange={e => setRegDocPass(e.target.value)}
+                  placeholder="••••••••••••"
+                  required
+                />
+              </div>
+            </div>
+            {error && <div className="alert alert-danger py-2 small mb-3">{error}</div>}
+            <button
+              type="submit"
+              className="btn btn-primary-gradient w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+              disabled={loading}
+            >
+              {loading
+                ? <><span className="spinner-border spinner-border-sm" /> Provisioning Account...</>
+                : <><i className="bi bi-person-plus-fill" /> Provision & Enter Clinical Portal</>
               }
             </button>
           </form>

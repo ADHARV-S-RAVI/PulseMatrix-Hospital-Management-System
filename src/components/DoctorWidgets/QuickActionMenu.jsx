@@ -1,0 +1,1 @@
+export default function QuickActionMenu() { return <button className="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center" style={{ width: 36, height: 36 }}><i className="bi bi-plus-lg"></i></button>; }
