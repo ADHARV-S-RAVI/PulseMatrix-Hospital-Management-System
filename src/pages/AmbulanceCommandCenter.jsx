@@ -19,7 +19,7 @@ export default function AmbulanceCommandCenter() {
 
   const fetchAmbulances = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:5000/ambulances/');
+      const res = await fetch('http://127.0.0.1:5001/ambulances/');
       const data = await res.json();
       if (data.ambulances) setAmbulances(data.ambulances);
     } catch (err) {
@@ -36,7 +36,7 @@ export default function AmbulanceCommandCenter() {
   const handleDispatch = async (e) => {
     e.preventDefault();
     try {
-      await fetch('http://127.0.0.1:5000/ambulances/', {
+      await fetch('http://127.0.0.1:5001/ambulances/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
