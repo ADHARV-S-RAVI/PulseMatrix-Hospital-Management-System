@@ -424,76 +424,23 @@ python app.py
 > Replace the placeholders below with your screenshots.
 
 ## 🏠 Dashboard
+<img width="1917" height="871" alt="Screenshot 2026-07-30 191912" src="https://github.com/user-attachments/assets/95110b58-2894-4a10-b90c-2ace9fcad749" />
 
-<!-- Add Dashboard Screenshot Here -->
-
-```
-Example:
-
-assets/screenshots/dashboard.png
-```
-
----
 
 ## 🌐 Digital Twin
 
-<!-- Add Digital Twin Screenshot Here -->
+<img width="1918" height="870" alt="Screenshot 2026-07-30 191705" src="https://github.com/user-attachments/assets/57e7d40e-5323-450f-a2a1-b40e0f2d8b85" />
 
-```
-Example:
-
-assets/screenshots/digital-twin.png
-```
-
----
 
 ## 🚑 Ambulance Dashboard
 
-<!-- Add Ambulance Screenshot Here -->
+<img width="1907" height="875" alt="Screenshot 2026-07-30 194442" src="https://github.com/user-attachments/assets/ec2f3267-ad8b-4fb5-a2de-26e14ef7a5f9" />
 
-```
-Example:
-
-assets/screenshots/ambulance.png
-```
-
----
-
-## 👨‍⚕️ Patient Management
-
-<!-- Add Patient Management Screenshot Here -->
-
-```
-Example:
-
-assets/screenshots/patient.png
-```
-
----
 
 ## 📊 Analytics Dashboard
 
-<!-- Add Analytics Screenshot Here -->
+<img width="1912" height="865" alt="Screenshot 2026-07-30 192044" src="https://github.com/user-attachments/assets/da8fa66a-b10b-40d3-9e3a-0fda886f13a7" />
 
-```
-Example:
-
-assets/screenshots/analytics.png
-```
-
----
-
-## 🤖 AI Assistant
-
-<!-- Add AI Screenshot Here -->
-
-```
-Example:
-
-assets/screenshots/ai-assistant.png
-```
-
----
 
 # 🔮 Future Enhancements
 
@@ -510,16 +457,6 @@ assets/screenshots/ai-assistant.png
 - [ ] Multi-Hospital Network
 - [ ] Voice Assistant
 
----
-
-# 👥 Contributors
-
-| Name | Role |
-|------|------|
-| **Adharv S Ravi** | Frontend Developer |
-| **Adithya NC** | Backend Developer |
-
----
 
 # 🤝 Contributing
 
